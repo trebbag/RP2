@@ -1,0 +1,41 @@
+{
+  "runId": "cmligo89g0016cb7j0vvczcbb",
+  "encounterId": "ENC-260211-996",
+  "orchestration": {
+    "traceId": "trace_73f2aa05-e8c0-40b6-aec4-df39c454d05b",
+    "task": "compose",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "fallback": true,
+    "startedAt": "2026-02-11T20:07:14.651Z",
+    "completedAt": "2026-02-11T20:07:14.652Z",
+    "durationMs": 1,
+    "inputHash": "b8964a7063c0beb953937544b5f71f3763a93097defc26c2a3407ddfa3b9a42d",
+    "outputHash": "3df67bc75ee2d745d092144a523d19428cc742aa5964532aea78a06a6ac9c17f",
+    "error": "RP2_OFFLINE_AI=1"
+  },
+  "outputTraceId": "trace_0c994b286fa96e33",
+  "stages": [
+    {
+      "id": 1,
+      "title": "Analyzing Content",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "title": "Enhancing Structure",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "title": "Beautifying Language",
+      "status": "completed"
+    },
+    {
+      "id": 4,
+      "title": "Final Review",
+      "status": "completed"
+    }
+  ],
+  "createdAt": "2026-02-11T20:07:14.652Z"
+}

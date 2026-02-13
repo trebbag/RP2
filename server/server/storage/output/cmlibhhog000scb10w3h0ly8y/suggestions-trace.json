@@ -1,0 +1,18 @@
+{
+  "task": "suggestions",
+  "encounterId": "ENC-260211-210",
+  "generatedAt": "2026-02-11T17:42:36.850Z",
+  "trace": {
+    "traceId": "trace_991ac250-c9ca-4de7-856e-cdb3b6265c77",
+    "task": "suggestions",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "fallback": true,
+    "startedAt": "2026-02-11T17:42:02.176Z",
+    "completedAt": "2026-02-11T17:42:36.850Z",
+    "durationMs": 34674,
+    "inputHash": "13b082240c6cb84640d3b14ddbf81be02ecd093f7e0f811ad66b8fc046324674",
+    "outputHash": "33a300fce96b265d41b589695e0f867c6f48ed52b34ece383e5a83468ad20ac7",
+    "error": "Model returned empty output"
+  }
+}

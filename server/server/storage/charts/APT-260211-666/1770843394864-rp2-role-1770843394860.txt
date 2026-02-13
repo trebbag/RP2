@@ -1,0 +1,6 @@
+Medications: Aspirin 81mg; Lisinopril 10mg
+Allergies: Penicillin
+PMH: Hypertension, Diabetes
+BP: 132/84
+HR: 78
+Lab: A1c=7.2 % H

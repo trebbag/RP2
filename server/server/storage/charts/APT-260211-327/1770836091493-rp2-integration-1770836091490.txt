@@ -1,0 +1,7 @@
+Medications: Aspirin 81mg; Albuterol inhaler
+Allergies: NKDA
+PMH: Hypertension
+BP: 128/82
+HR: 76
+Temp: 98.4 F
+Lab: LDL=110 mg/dL H

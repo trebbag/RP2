@@ -1,0 +1,537 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MA
+  CLINICIAN
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+enum AppointmentPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum EncounterStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  STOPPED
+  FINALIZED
+}
+
+enum NoteStatus {
+  DRAFT_HIDDEN
+  DRAFT_ACTIVE
+  FINAL
+}
+
+enum NoteVisibility {
+  HIDDEN
+  VISIBLE
+  LOCKED
+}
+
+enum TranscriptSource {
+  LIVE_UPLOAD
+  MANUAL
+}
+
+enum SuggestionCategory {
+  CODE
+  DIAGNOSIS
+  DIFFERENTIAL
+  PREVENTION
+}
+
+enum SuggestionStatus {
+  SUGGESTED
+  SELECTED
+  REJECTED
+  REMOVED
+}
+
+enum SelectionAction {
+  KEEP
+  REMOVE
+  MOVE_TO_DIAGNOSIS
+  MOVE_TO_DIFFERENTIAL
+  ADD_FROM_SUGGESTION
+}
+
+enum ComplianceSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum ComplianceStatus {
+  ACTIVE
+  DISMISSED
+  RESOLVED
+}
+
+enum WizardRunStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum WizardStep {
+  STEP1_CODE_REVIEW
+  STEP2_SUGGESTION_REVIEW
+  STEP3_COMPOSE
+  STEP4_COMPARE_EDIT
+  STEP5_BILLING_ATTEST
+  STEP6_SIGN_DISPATCH
+}
+
+enum WizardStepStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum ArtifactType {
+  NOTE_PDF
+  PATIENT_SUMMARY_PDF
+  TRACE_JSON
+  STRUCTURED_CHART_JSON
+}
+
+enum DispatchTarget {
+  FHIR_R4
+  HL7_V2
+  VENDOR_API
+  NONE
+}
+
+enum DispatchStatus {
+  PENDING
+  RETRYING
+  DISPATCHED
+  FAILED
+  DEAD_LETTER
+}
+
+model User {
+  id                    String                  @id @default(cuid())
+  email                 String                  @unique
+  name                  String
+  role                  UserRole                @default(CLINICIAN)
+  passwordHash          String?
+  mfaEnabled            Boolean                 @default(false)
+  mfaSecret             String?
+  mfaBackupCodesHash    Json?
+  mfaEnrolledAt         DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  appointmentsCreated   Appointment[]           @relation("AppointmentCreatedBy")
+  appointmentsProvided  Appointment[]           @relation("AppointmentProvider")
+  encountersProvided    Encounter[]             @relation("EncounterProvider")
+  notesCreated          Note[]                  @relation("NoteCreatedBy")
+  notesUpdated          Note[]                  @relation("NoteUpdatedBy")
+  noteVersions          NoteVersion[]
+  chartAssets           ChartAsset[]
+  suggestionGenerations SuggestionGeneration[]
+  codeSelections        CodeSelection[]
+  complianceIssues      ComplianceIssue[]       @relation("ComplianceActor")
+  wizardStepStates      WizardStepState[]       @relation("WizardActor")
+  exportArtifacts       ExportArtifact[]        @relation("ExportCreatedBy")
+  auditLogs             AuditLog[]
+  authSessions          AuthSession[]
+  dispatchJobs          DispatchJob[]           @relation("DispatchCreatedBy")
+  userSettings          UserSettings?
+}
+
+model UserSettings {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  payload    Json
+  updatedById String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+}
+
+model Patient {
+  id           String        @id @default(cuid())
+  externalId   String        @unique
+  firstName    String
+  lastName     String
+  dateOfBirth  DateTime?
+  email        String?
+  phone        String?
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  appointments Appointment[]
+  encounters   Encounter[]
+  chartAssets  ChartAsset[]
+}
+
+model Appointment {
+  id              String              @id @default(cuid())
+  externalId      String              @unique
+  patientId       String
+  providerId      String?
+  createdById     String?
+  scheduledAt     DateTime
+  durationMinutes Int                 @default(30)
+  appointmentType String
+  location        String?
+  status          AppointmentStatus   @default(SCHEDULED)
+  priority        AppointmentPriority @default(MEDIUM)
+  isVirtual       Boolean             @default(false)
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider        User?               @relation("AppointmentProvider", fields: [providerId], references: [id], onDelete: SetNull)
+  createdBy       User?               @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  encounter       Encounter?
+  chartAssets     ChartAsset[]
+
+  @@index([scheduledAt])
+  @@index([providerId])
+  @@index([patientId])
+}
+
+model Encounter {
+  id                 String            @id @default(cuid())
+  externalId         String            @unique
+  appointmentId      String?           @unique
+  patientId          String
+  providerId         String?
+  status             EncounterStatus   @default(PENDING)
+  startedAt          DateTime?
+  stoppedAt          DateTime?
+  hiddenDraftCreated DateTime?
+  draftUnhiddenAt    DateTime?
+  finalizedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  appointment        Appointment?      @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patient            Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider           User?             @relation("EncounterProvider", fields: [providerId], references: [id], onDelete: SetNull)
+  note               Note?
+  transcriptSegments TranscriptSegment[]
+  chartAssets        ChartAsset[]
+  suggestionCycles   SuggestionGeneration[]
+  codeSuggestions    CodeSuggestion[]
+  codeSelections     CodeSelection[]
+  complianceIssues   ComplianceIssue[]
+  wizardRuns         WizardRun[]
+  wizardStepStates   WizardStepState[]
+  exportArtifacts    ExportArtifact[]
+  auditLogs          AuditLog[]
+  dispatchJobs       DispatchJob[]
+
+  @@index([status])
+  @@index([patientId])
+}
+
+model Note {
+  id            String         @id @default(cuid())
+  encounterId   String         @unique
+  status        NoteStatus     @default(DRAFT_HIDDEN)
+  visibility    NoteVisibility @default(HIDDEN)
+  content       String         @default("")
+  patientSummary String        @default("")
+  createdById   String?
+  updatedById   String?
+  finalizedAt   DateTime?
+  lockedAt      DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  encounter     Encounter      @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  createdBy     User?          @relation("NoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?          @relation("NoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  versions      NoteVersion[]
+  exportArtifacts ExportArtifact[]
+  dispatchJobs  DispatchJob[]
+}
+
+model NoteVersion {
+  id            String   @id @default(cuid())
+  noteId         String
+  versionNumber  Int
+  source         String
+  content        String
+  patientSummary String
+  traceId        String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  note           Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdBy      User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([noteId, versionNumber])
+  @@index([noteId, createdAt])
+}
+
+model TranscriptSegment {
+  id          String           @id @default(cuid())
+  encounterId String
+  speaker     String
+  speakerLabel String?
+  text        String
+  startMs     Int
+  endMs       Int
+  source      TranscriptSource @default(LIVE_UPLOAD)
+  confidence  Float?
+  createdAt   DateTime         @default(now())
+
+  encounter   Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId, createdAt])
+}
+
+model ChartAsset {
+  id           String      @id @default(cuid())
+  appointmentId String?
+  encounterId  String?
+  patientId    String?
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storagePath  String
+  extractedJson Json?
+  rawText      String?
+  createdById  String?
+  createdAt    DateTime    @default(now())
+
+  appointment  Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  encounter    Encounter?   @relation(fields: [encounterId], references: [id], onDelete: SetNull)
+  patient      Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([encounterId])
+  @@index([patientId])
+}
+
+model SuggestionGeneration {
+  id              String          @id @default(cuid())
+  encounterId     String
+  trigger         String
+  textDelta       Int             @default(0)
+  transcriptDelta Int             @default(0)
+  inputHash       String?
+  createdById     String?
+  createdAt       DateTime        @default(now())
+
+  encounter       Encounter       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  createdBy       User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  suggestions     CodeSuggestion[]
+
+  @@index([encounterId, createdAt])
+}
+
+model CodeSuggestion {
+  id            String             @id @default(cuid())
+  encounterId   String
+  generationId  String
+  code          String
+  codeType      String
+  category      SuggestionCategory
+  title         String
+  description   String
+  rationale     String
+  confidence    Float
+  evidence      Json?
+  status        SuggestionStatus   @default(SUGGESTED)
+  recommended   Boolean            @default(true)
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  encounter     Encounter          @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  generation    SuggestionGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  selections    CodeSelection[]
+
+  @@index([encounterId, status])
+  @@index([generationId])
+}
+
+model CodeSelection {
+  id              String           @id @default(cuid())
+  encounterId     String
+  codeSuggestionId String?
+  code            String
+  codeType        String
+  category        SuggestionCategory
+  action          SelectionAction
+  decisionReason  String?
+  actorId         String?
+  createdAt       DateTime         @default(now())
+
+  encounter       Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  codeSuggestion  CodeSuggestion?  @relation(fields: [codeSuggestionId], references: [id], onDelete: SetNull)
+  actor           User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([encounterId, code])
+  @@index([codeSuggestionId])
+}
+
+model ComplianceIssue {
+  id           String            @id @default(cuid())
+  encounterId  String
+  severity     ComplianceSeverity
+  status       ComplianceStatus  @default(ACTIVE)
+  title        String
+  description  String
+  rationale    String
+  remediation  String
+  evidence     Json?
+  fingerprint  String
+  actorId      String?
+  resolvedAt   DateTime?
+  dismissedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  encounter    Encounter         @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  actor        User?             @relation("ComplianceActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@unique([encounterId, fingerprint])
+  @@index([encounterId, status])
+}
+
+model WizardRun {
+  id          String          @id @default(cuid())
+  encounterId String
+  status      WizardRunStatus @default(IN_PROGRESS)
+  runState    Json?
+  startedAt   DateTime        @default(now())
+  completedAt DateTime?
+
+  encounter   Encounter       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  stepStates  WizardStepState[]
+
+  @@index([encounterId, startedAt])
+}
+
+model WizardStepState {
+  id           String           @id @default(cuid())
+  wizardRunId  String
+  encounterId  String
+  step         WizardStep
+  status       WizardStepStatus @default(NOT_STARTED)
+  payload      Json?
+  lastActorId  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  wizardRun    WizardRun        @relation(fields: [wizardRunId], references: [id], onDelete: Cascade)
+  encounter    Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  lastActor    User?            @relation("WizardActor", fields: [lastActorId], references: [id], onDelete: SetNull)
+
+  @@unique([wizardRunId, step])
+  @@index([encounterId, step])
+}
+
+model ExportArtifact {
+  id           String       @id @default(cuid())
+  encounterId  String
+  noteId       String?
+  type         ArtifactType
+  filePath     String
+  mimeType     String
+  fileName     String
+  sizeBytes    Int
+  createdById  String?
+  createdAt    DateTime     @default(now())
+
+  encounter    Encounter    @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  note         Note?        @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  createdBy    User?        @relation("ExportCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([encounterId, type])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  actorId     String?
+  encounterId String?
+  action      String
+  entity      String
+  entityId    String
+  ip          String?
+  userAgent   String?
+  details     Json?
+  createdAt   DateTime  @default(now())
+
+  actor       User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  encounter   Encounter? @relation(fields: [encounterId], references: [id], onDelete: SetNull)
+
+  @@index([encounterId, createdAt])
+}
+
+model AuthSession {
+  id                String    @id @default(cuid())
+  userId            String
+  refreshTokenHash  String    @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  ip                String?
+  userAgent         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model DispatchJob {
+  id             String         @id @default(cuid())
+  encounterId    String
+  noteId         String?
+  target         DispatchTarget @default(NONE)
+  status         DispatchStatus @default(PENDING)
+  contractType   String?
+  attemptCount   Int            @default(0)
+  maxAttempts    Int            @default(5)
+  nextRetryAt    DateTime?
+  dispatchedAt   DateTime?
+  deadLetteredAt DateTime?
+  externalMessageId String?
+  lastError      String?
+  payload        Json
+  response       Json?
+  createdById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  encounter      Encounter      @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  note           Note?          @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  createdBy      User?          @relation("DispatchCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, nextRetryAt])
+  @@index([encounterId, createdAt])
+}

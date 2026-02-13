@@ -1,0 +1,23 @@
+{
+  "task": "suggestions",
+  "encounterId": "ENC-260213-767",
+  "generatedAt": "2026-02-13T17:36:32.131Z",
+  "trace": {
+    "traceId": "trace_f70583d5-ad71-4c77-9280-6a2802a4342e",
+    "task": "suggestions",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "promptVersionId": "prompt-2026.02.11-suggestions-26e0bbcf85e744bc",
+    "promptProfileDigest": "315dcf5b00d69506",
+    "promptOverridesApplied": true,
+    "fallback": true,
+    "startedAt": "2026-02-13T17:36:32.130Z",
+    "completedAt": "2026-02-13T17:36:32.130Z",
+    "durationMs": 0,
+    "inputHash": "63a10b705c31f7fe927c5846cabd9dc7f8f06106e10ec87ba2c28b25a1a4a21e",
+    "outputHash": "33a300fce96b265d41b589695e0f867c6f48ed52b34ece383e5a83468ad20ac7",
+    "error": "RP2_OFFLINE_AI=1"
+  },
+  "promptVersionId": "prompt-2026.02.11-suggestions-26e0bbcf85e744bc",
+  "guardrailWarnings": []
+}

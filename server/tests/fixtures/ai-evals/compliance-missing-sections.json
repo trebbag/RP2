@@ -1,0 +1,12 @@
+{
+  "name": "compliance_missing_core_sections",
+  "input": {
+    "noteContent": "Patient here for follow-up. Cough persists.",
+    "selectedCodes": []
+  },
+  "expectations": {
+    "minCritical": 1,
+    "requiredTitleFragments": ["History of Present Illness", "Assessment"],
+    "requireCptWarning": true
+  }
+}

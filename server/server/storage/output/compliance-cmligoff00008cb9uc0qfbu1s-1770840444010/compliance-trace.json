@@ -1,0 +1,18 @@
+{
+  "task": "compliance",
+  "encounterId": "ENC-260211-541",
+  "generatedAt": "2026-02-11T20:07:24.010Z",
+  "trace": {
+    "traceId": "trace_078a8056-d567-4070-a013-abaf29ca957f",
+    "task": "compliance",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "fallback": true,
+    "startedAt": "2026-02-11T20:07:24.010Z",
+    "completedAt": "2026-02-11T20:07:24.010Z",
+    "durationMs": 0,
+    "inputHash": "fc1f0f78a463f0ee51c872c1e051bc66313a48e8ee45ae63796cd7c6edac3f0d",
+    "outputHash": "c86becde1375f4e6a0a33542900608778ccc50ca902c5858960b0d088a0a1aef",
+    "error": "RP2_OFFLINE_AI=1"
+  }
+}

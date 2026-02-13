@@ -1,0 +1,13 @@
+{
+  "name": "diarization_basic_transcript",
+  "input": {
+    "transcriptText": "Good morning doctor. I still have a cough and shortness of breath. Let's listen to your lungs and discuss treatment.",
+    "speakerHint": "Patient",
+    "speakerHints": ["Doctor", "Patient"]
+  },
+  "expectations": {
+    "minSegments": 1,
+    "allowedSpeakers": ["Doctor", "Patient", "Speaker 1"],
+    "requireTracePrefix": "trace_"
+  }
+}

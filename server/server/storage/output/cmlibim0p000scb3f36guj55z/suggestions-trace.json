@@ -1,0 +1,18 @@
+{
+  "task": "suggestions",
+  "encounterId": "ENC-260211-378",
+  "generatedAt": "2026-02-11T17:43:24.698Z",
+  "trace": {
+    "traceId": "trace_511bec91-e6a2-47ed-a902-bf2a723b3a02",
+    "task": "suggestions",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "fallback": true,
+    "startedAt": "2026-02-11T17:42:54.459Z",
+    "completedAt": "2026-02-11T17:43:24.698Z",
+    "durationMs": 30239,
+    "inputHash": "7ba70427e8a5e6e4f4f4efbd551e2f9d6e63bab1e7fec03b6370afce9f8d52ea",
+    "outputHash": "33a300fce96b265d41b589695e0f867c6f48ed52b34ece383e5a83468ad20ac7",
+    "error": "Unexpected non-whitespace character after JSON at position 626 (line 13 column 4)"
+  }
+}

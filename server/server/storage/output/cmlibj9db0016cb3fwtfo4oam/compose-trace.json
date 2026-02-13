@@ -1,0 +1,41 @@
+{
+  "runId": "cmlibj9db0016cb3fwtfo4oam",
+  "encounterId": "ENC-260211-378",
+  "orchestration": {
+    "traceId": "trace_ee32c997-580d-4ee7-a1bf-7b0a50415624",
+    "task": "compose",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "fallback": true,
+    "startedAt": "2026-02-11T17:43:24.731Z",
+    "completedAt": "2026-02-11T17:43:50.832Z",
+    "durationMs": 26101,
+    "inputHash": "b8964a7063c0beb953937544b5f71f3763a93097defc26c2a3407ddfa3b9a42d",
+    "outputHash": "024557145429ca2d7d1d8e5ff6b3aa0641cef910617ffca44388b5ccd591ca41",
+    "error": "[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      0,\n      \"id\"\n    ],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      0,\n      \"title\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"pending\",\n      \"in-progress\",\n      \"completed\"\n    ],\n    \"path\": [\n      \"stages\",\n      0,\n      \"status\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"pending\\\"|\\\"in-progress\\\"|\\\"completed\\\"\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      1,\n      \"id\"\n    ],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      1,\n      \"title\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"pending\",\n      \"in-progress\",\n      \"completed\"\n    ],\n    \"path\": [\n      \"stages\",\n      1,\n      \"status\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"pending\\\"|\\\"in-progress\\\"|\\\"completed\\\"\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      2,\n      \"id\"\n    ],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      2,\n      \"title\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"pending\",\n      \"in-progress\",\n      \"completed\"\n    ],\n    \"path\": [\n      \"stages\",\n      2,\n      \"status\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"pending\\\"|\\\"in-progress\\\"|\\\"completed\\\"\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      3,\n      \"id\"\n    ],\n    \"message\": \"Invalid input: expected number, received undefined\"\n  },\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"stages\",\n      3,\n      \"title\"\n    ],\n    \"message\": \"Invalid input: expected string, received undefined\"\n  },\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"pending\",\n      \"in-progress\",\n      \"completed\"\n    ],\n    \"path\": [\n      \"stages\",\n      3,\n      \"status\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"pending\\\"|\\\"in-progress\\\"|\\\"completed\\\"\"\n  }\n]"
+  },
+  "outputTraceId": "trace_cbe174c8a32ed3a9",
+  "stages": [
+    {
+      "id": 1,
+      "title": "Analyzing Content",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "title": "Enhancing Structure",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "title": "Beautifying Language",
+      "status": "completed"
+    },
+    {
+      "id": 4,
+      "title": "Final Review",
+      "status": "completed"
+    }
+  ],
+  "createdAt": "2026-02-11T17:43:50.832Z"
+}

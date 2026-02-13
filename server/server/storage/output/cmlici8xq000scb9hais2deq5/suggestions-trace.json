@@ -1,0 +1,18 @@
+{
+  "task": "suggestions",
+  "encounterId": "ENC-260211-466",
+  "generatedAt": "2026-02-11T18:10:37.120Z",
+  "trace": {
+    "traceId": "trace_59dce117-723e-4df5-a927-8eb29917f94e",
+    "task": "suggestions",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "fallback": true,
+    "startedAt": "2026-02-11T18:10:37.119Z",
+    "completedAt": "2026-02-11T18:10:37.120Z",
+    "durationMs": 1,
+    "inputHash": "c9ce21b70dc325a50fb6dbee5126695c499be3235ac74f9bedec2f420f7b874c",
+    "outputHash": "33a300fce96b265d41b589695e0f867c6f48ed52b34ece383e5a83468ad20ac7",
+    "error": "RP2_OFFLINE_AI=1"
+  }
+}

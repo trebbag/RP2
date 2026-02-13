@@ -1,0 +1,11 @@
+{
+  "name": "compose_standard_note",
+  "input": {
+    "noteContent": "chief complaint:\nchest discomfort for 2 days\nassessment:\npossible stable angina\nplan:\nobtain ekg and counsel smoking cessation",
+    "patientName": "Jordan Smith"
+  },
+  "expectations": {
+    "requiredEnhancedFragments": ["CHIEF COMPLAINT", "ASSESSMENT", "PLAN"],
+    "requiredSummaryFragments": ["Visit Summary for Jordan Smith", "What we discussed", "What happens next"]
+  }
+}

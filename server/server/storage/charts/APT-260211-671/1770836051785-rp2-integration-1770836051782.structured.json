@@ -1,0 +1,41 @@
+{
+  "extractedAt": "2026-02-11T18:54:11.789Z",
+  "sourceFile": "rp2-integration-1770836051782.txt",
+  "sourceMimeType": "text/plain",
+  "patientId": "PT-2026-4840",
+  "encounterId": "ENC-260211-082",
+  "vitals": {
+    "bpSystolic": 128,
+    "bpDiastolic": 82,
+    "hrBpm": 76,
+    "tempF": 98.4
+  },
+  "medications": [
+    "Aspirin 81mg",
+    "Albuterol inhaler"
+  ],
+  "allergies": [
+    "NKDA"
+  ],
+  "pastMedicalHistory": [
+    "Hypertension"
+  ],
+  "labs": [
+    {
+      "name": "LDL",
+      "value": "110",
+      "unit": "mg/dL",
+      "flag": "H"
+    }
+  ],
+  "problems": [],
+  "narrativeSnippets": [
+    "Medications: Aspirin 81mg; Albuterol inhaler",
+    "Allergies: NKDA",
+    "PMH: Hypertension",
+    "BP: 128/82",
+    "HR: 76",
+    "Temp: 98.4 F",
+    "Lab: LDL=110 mg/dL H"
+  ]
+}

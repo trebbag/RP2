@@ -1,0 +1,107 @@
+{
+  "packVersion": "payer-approved-2026.02",
+  "updatedAt": "2026-02-01T00:00:00.000Z",
+  "updatedBy": "RevenuePilot Finance Committee",
+  "schedules": {
+    "MEDICARE": {
+      "version": "CMS-2026.01",
+      "payerModel": "MEDICARE",
+      "approval": {
+        "approvedBy": "RevenuePilot Finance Committee",
+        "approvedAt": "2026-02-01",
+        "source": "CMS Physician Fee Schedule 2026"
+      },
+      "defaultRateCents": 8800,
+      "cptRatesCents": {
+        "99212": 9050,
+        "99213": 12620,
+        "99214": 18450,
+        "99215": 23690,
+        "93000": 5100,
+        "80061": 2350
+      },
+      "defaultCoinsurancePct": 0.2,
+      "defaultCopayCents": 0,
+      "rules": {
+        "requireAtLeastOneCpt": false,
+        "maxCoinsurancePct": 0.4,
+        "maxCopayCents": 15000
+      }
+    },
+    "AETNA_PPO": {
+      "version": "AETNA-2026.01",
+      "payerModel": "AETNA_PPO",
+      "approval": {
+        "approvedBy": "RevenuePilot Finance Committee",
+        "approvedAt": "2026-02-01",
+        "source": "Aetna PPO contracted rates pilot pack"
+      },
+      "defaultRateCents": 9900,
+      "cptRatesCents": {
+        "99212": 10450,
+        "99213": 14600,
+        "99214": 21000,
+        "99215": 26900,
+        "93000": 5900,
+        "80061": 2900
+      },
+      "defaultCoinsurancePct": 0.15,
+      "defaultCopayCents": 3500,
+      "rules": {
+        "requireAtLeastOneCpt": false,
+        "maxCoinsurancePct": 0.5,
+        "maxCopayCents": 25000
+      }
+    },
+    "BCBS_PPO": {
+      "version": "BCBS-2026.01",
+      "payerModel": "BCBS_PPO",
+      "approval": {
+        "approvedBy": "RevenuePilot Finance Committee",
+        "approvedAt": "2026-02-01",
+        "source": "BCBS PPO contracted rates pilot pack"
+      },
+      "defaultRateCents": 9700,
+      "cptRatesCents": {
+        "99212": 10100,
+        "99213": 14250,
+        "99214": 20500,
+        "99215": 26200,
+        "93000": 5750,
+        "80061": 2800
+      },
+      "defaultCoinsurancePct": 0.18,
+      "defaultCopayCents": 3000,
+      "rules": {
+        "requireAtLeastOneCpt": false,
+        "maxCoinsurancePct": 0.5,
+        "maxCopayCents": 25000
+      }
+    },
+    "SELF_PAY": {
+      "version": "SELFPAY-2026.01",
+      "payerModel": "SELF_PAY",
+      "approval": {
+        "approvedBy": "RevenuePilot Finance Committee",
+        "approvedAt": "2026-02-01",
+        "source": "Clinic self-pay schedule"
+      },
+      "defaultRateCents": 7000,
+      "cptRatesCents": {
+        "99212": 7600,
+        "99213": 9900,
+        "99214": 13700,
+        "99215": 17000,
+        "93000": 4300,
+        "80061": 1900
+      },
+      "defaultCoinsurancePct": 1,
+      "defaultCopayCents": 0,
+      "rules": {
+        "requireAtLeastOneCpt": false,
+        "maxCoinsurancePct": 1,
+        "maxCopayCents": 0
+      }
+    }
+  }
+}

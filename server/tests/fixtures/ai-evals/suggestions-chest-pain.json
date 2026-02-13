@@ -1,0 +1,16 @@
+{
+  "name": "suggestions_chest_pain_with_chart_context",
+  "input": {
+    "noteContent": "HISTORY OF PRESENT ILLNESS:\nPatient reports chest pain on exertion for two days. Smokes one pack daily.\nASSESSMENT:\nPossible angina.\nPLAN:\nOrder EKG and smoking cessation counseling.",
+    "transcriptText": "Doctor: We need an electrocardiogram today. Patient: The chest pain is worse with stairs.",
+    "chartContext": {
+      "medications": ["aspirin", "atorvastatin"],
+      "riskFactors": ["smoker"]
+    }
+  },
+  "expectations": {
+    "minCount": 2,
+    "expectedCodes": ["I25.10", "93000"],
+    "requireEvidence": true
+  }
+}
