@@ -1,16 +1,10 @@
-import fs from "node:fs/promises"
-import path from "node:path"
 import { z } from "zod"
 import { env } from "../config/env.js"
 import { runJsonTask, type OrchestrationTrace } from "./orchestrationService.js"
 import { buildPromptBundle, type PromptProfile } from "./promptBuilderService.js"
 import { enforceDiarizationGuardrails } from "./aiGuardrailService.js"
-
-interface SttSegment {
-  text: string
-  startSec?: number
-  endSec?: number
-}
+import { deidentifyText } from "../ai/deidentify.js"
+import { logger } from "../lib/logger.js"
 
 interface TranscribeInput {
   filePath: string
@@ -128,57 +122,6 @@ function allocateTimings(
   })
 }
 
-async function transcribeWithOpenAi(filePath: string, mimeType: string): Promise<{
-  transcriptText: string
-  sttSegments: SttSegment[]
-}> {
-  const apiKey = env.OPENAI_API_KEY
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY missing")
-  }
-
-  const fileBuffer = await fs.readFile(filePath)
-  const form = new FormData()
-  form.append("model", env.OPENAI_STT_MODEL)
-  form.append("response_format", "verbose_json")
-  form.append("file", new Blob([fileBuffer], { type: mimeType || "audio/webm" }), path.basename(filePath))
-
-  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: form
-  })
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`OpenAI STT error ${response.status}: ${body.slice(0, 280)}`)
-  }
-
-  const payload = (await response.json()) as {
-    text?: string
-    segments?: Array<{
-      text?: string
-      start?: number
-      end?: number
-    }>
-  }
-
-  const transcriptText = payload.text?.trim() ?? ""
-  const sttSegments: SttSegment[] =
-    payload.segments?.map((segment) => ({
-      text: segment.text?.trim() ?? "",
-      startSec: segment.start,
-      endSec: segment.end
-    })) ?? []
-
-  return {
-    transcriptText,
-    sttSegments
-  }
-}
-
 async function diarizeText(input: {
   transcriptText: string
   speakerHint?: string
@@ -194,17 +137,19 @@ async function diarizeText(input: {
       preferredSpeakers: hints
     }
   })
+  const deidentifiedTranscript = deidentifyText(input.transcriptText)
+
   const result = await runJsonTask({
     task: "diarization",
     instructions: `${prompt.instructions}\nPreferred speaker labels: ${hints.join(", ") || "Doctor, Patient"}.`,
     input: {
-      transcriptText: input.transcriptText,
+      transcriptText: deidentifiedTranscript.text,
       speakerHint: input.speakerHint,
       speakerHints: hints
     },
     schema: diarizationSchema,
     fallback: () => ({
-      segments: naiveDiarization(input.transcriptText, input.speakerHint)
+      segments: naiveDiarization(deidentifiedTranscript.text, input.speakerHint)
     }),
     promptVersionId: prompt.versionId,
     promptProfileDigest: prompt.metadata.profileDigest,
@@ -233,22 +178,15 @@ export async function diarizeTranscriptText(input: {
 
 export async function transcribeAndDiarizeAudio(input: TranscribeInput): Promise<TranscribeOutput> {
   const warnings: string[] = []
-  let provider: "openai" | "fallback" = "openai"
-
-  let transcriptText = ""
-  let sttSegments: SttSegment[] = []
-
-  try {
-    const transcribed = await transcribeWithOpenAi(input.filePath, input.mimeType)
-    transcriptText = transcribed.transcriptText
-    sttSegments = transcribed.sttSegments
-  } catch (error) {
-    provider = "fallback"
-    const message = error instanceof Error ? error.message : "Unknown STT error"
-    warnings.push(message)
-  }
+  const provider: "openai" | "fallback" = "fallback"
+  const transcriptText = ""
 
   if (!transcriptText.trim()) {
+    warnings.push("External STT is disabled by PHI boundary policy. Provide transcript segments through trusted local ingestion.")
+    logger.info("stt.external_disabled_by_phi_boundary", {
+      filePath: input.filePath,
+      mimeType: input.mimeType
+    })
     return {
       transcriptText: "",
       segments: [],
@@ -272,7 +210,6 @@ export async function transcribeAndDiarizeAudio(input: TranscribeInput): Promise
   })
 
   if (diarized.trace.fallback) {
-    provider = "fallback"
     if (diarized.trace.error) warnings.push(diarized.trace.error)
   }
   warnings.push(...guarded.warnings)
@@ -282,17 +219,7 @@ export async function transcribeAndDiarizeAudio(input: TranscribeInput): Promise
       ? Math.max(0, input.sessionElapsedMs - (input.chunkDurationMs ?? 0))
       : 0
   const baseStartMs = Math.max(0, input.lastKnownEndMs, inferredStartFromClock)
-  const durationFromSegments = sttSegments.length
-    ? Math.max(
-        1500,
-        Math.round(
-          Math.max(
-            0,
-            (sttSegments[sttSegments.length - 1]?.endSec ?? 0) - (sttSegments[0]?.startSec ?? 0)
-          ) * 1000
-        )
-      )
-    : 0
+  const durationFromSegments = 0
   const durationMs =
     input.chunkDurationMs ??
     (durationFromSegments > 0 ? durationFromSegments : approximateDurationMs(transcriptText))

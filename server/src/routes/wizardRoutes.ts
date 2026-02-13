@@ -26,10 +26,11 @@ const stepActionSchema = z.object({
   payload: z.record(z.string(), z.unknown()).optional()
 })
 
-const composeSchema = z.object({
-  noteContent: z.string().optional(),
-  patientName: z.string().optional()
-})
+const composeSchema = z
+  .object({
+    noteContent: z.string().optional(),
+  })
+  .strict()
 
 const finalizeSchema = z.object({
   finalNote: z.string().optional(),
@@ -395,8 +396,7 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
     })
 
     const composedResult = await composeNoteOrchestrated({
-      noteContent: payload.noteContent ?? encounter.note.content,
-      patientName: payload.patientName ?? `${encounter.patient.firstName} ${encounter.patient.lastName}`.trim()
+      noteContent: payload.noteContent ?? encounter.note.content
     }, promptProfile)
 
     const traceArtifact = await persistTraceJson({
@@ -528,8 +528,7 @@ wizardRoutes.post("/:encounterId/rebeautify", requireRole(["ADMIN", "CLINICIAN"]
     const payload = composeSchema.parse(req.body)
     const promptProfile = await resolvePromptProfile(authReq)
     const composedResult = await composeNoteOrchestrated({
-      noteContent: payload.noteContent ?? encounter.note.content,
-      patientName: payload.patientName ?? `${encounter.patient.firstName} ${encounter.patient.lastName}`.trim()
+      noteContent: payload.noteContent ?? encounter.note.content
     }, promptProfile)
 
     const traceArtifact = await persistTraceJson({

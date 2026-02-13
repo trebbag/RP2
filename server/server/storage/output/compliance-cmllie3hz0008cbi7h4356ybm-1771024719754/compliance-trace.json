@@ -1,0 +1,25 @@
+{
+  "task": "compliance",
+  "encounterId": "ENC-260213-481",
+  "generatedAt": "2026-02-13T23:18:39.754Z",
+  "trace": {
+    "traceId": "trace_e4cac117-3da5-4401-ade6-0c89205c214f",
+    "task": "compliance",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "promptVersionId": "prompt-2026.02.11-compliance-51ae090adda856b7",
+    "promptProfileDigest": "315dcf5b00d69506",
+    "promptOverridesApplied": true,
+    "fallback": true,
+    "startedAt": "2026-02-13T23:18:39.753Z",
+    "completedAt": "2026-02-13T23:18:39.753Z",
+    "durationMs": 0,
+    "inputHash": "21e1d02f50566a6ea802e681bb6992f4447653513447c8b6938083bb0fd72cd6",
+    "outputHash": "c86becde1375f4e6a0a33542900608778ccc50ca902c5858960b0d088a0a1aef",
+    "error": "RP2_OFFLINE_AI=1"
+  },
+  "promptVersionId": "prompt-2026.02.11-compliance-51ae090adda856b7",
+  "guardrailWarnings": [
+    "Injected missing CPT warning due to guardrail requirement."
+  ]
+}

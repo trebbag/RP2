@@ -161,7 +161,7 @@ export function enforceComplianceGuardrails(issues, input) {
         warnings
     };
 }
-export function enforceComposeGuardrails(output, input) {
+export function enforceComposeGuardrails(output) {
     const warnings = [];
     let enhancedNote = output.enhancedNote.trim();
     let patientSummary = output.patientSummary.trim();
@@ -180,9 +180,9 @@ export function enforceComposeGuardrails(output, input) {
         warnings.push("Patient summary missing 'What happens next' section; guardrail section injected.");
         patientSummary = `${patientSummary}\n\nWhat happens next:\n- Follow the treatment plan from this visit.\n- Contact the clinic if symptoms worsen.`;
     }
-    if (!new RegExp(`Visit Summary for\\s+${escapeRegex(input.patientName)}`, "i").test(patientSummary)) {
-        warnings.push("Patient summary title did not include patient name; normalized title injected.");
-        patientSummary = `Visit Summary for ${input.patientName || "Patient"}\n\n${patientSummary}`;
+    if (!/Visit Summary for\s+Patient/i.test(patientSummary)) {
+        warnings.push("Patient summary title did not use de-identified header; normalized title injected.");
+        patientSummary = `Visit Summary for Patient\n\n${patientSummary}`;
     }
     return {
         output: {

@@ -6,7 +6,6 @@ export declare const COMPOSE_STAGES: {
 }[];
 export interface ComposeInput {
     noteContent: string;
-    patientName: string;
 }
 export declare function composeNote(input: ComposeInput): {
     enhancedNote: string;

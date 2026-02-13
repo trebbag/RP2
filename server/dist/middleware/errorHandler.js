@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { ZodError } from "zod";
 import { logger } from "../lib/logger.js";
+import { PhiViolationError } from "../ai/types.js";
 export class ApiError extends Error {
     statusCode;
     details;
@@ -32,11 +34,28 @@ export function errorHandler(err, req, res, _next) {
         });
         return;
     }
+    if (err instanceof PhiViolationError) {
+        res.status(422).json({
+            error: "PHI boundary violation",
+            details: err.details,
+            requestId
+        });
+        return;
+    }
+    const safeErrorMeta = err instanceof Error
+        ? {
+            name: err.name,
+            messageHash: createHash("sha256").update(err.message ?? "").digest("hex"),
+            messageLength: (err.message ?? "").length
+        }
+        : {
+            type: typeof err
+        };
     logger.error("Unhandled API error", {
         requestId,
         method: req.method,
         path: req.path,
-        err
+        error: safeErrorMeta
     });
     res.status(500).json({ error: "Internal server error", requestId });
 }

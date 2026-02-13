@@ -217,6 +217,7 @@ npm run test:integration:prepare
 - Audit log entries are persisted for key write operations.
 - API responses include `x-request-id`; server emits structured JSON logs for request correlation.
 - Audit retention enforcement endpoint supports dry-run and apply modes.
+- Strict PHI boundary is enforced for AI payloads; all model calls flow through `server/src/ai/aiGateway.ts` and reject forbidden PHI keys/patterns.
 - Password complexity policy + MFA policy are enforced server-side (`PASSWORD_MIN_LENGTH`, `MFA_REQUIRED`).
 - Login and refresh routes are protected by server-side rate limiting / brute-force controls (`AUTH_LOGIN_*`, `AUTH_REFRESH_*`).
 - Dispatch jobs are persisted with retry metadata, dead-letter handling, and replay controls.
@@ -228,6 +229,7 @@ npm run test:integration:prepare
 - On-call incident playbook: `docs/ON_CALL_PLAYBOOK.md`.
 - Pilot dashboard package: `docs/OBSERVABILITY_DASHBOARDS.md`.
 - Release and migration checklist: `docs/RELEASE_CHECKLIST.md`.
+- PHI boundary policy and extension guide: `docs/PHI_BOUNDARY.md`.
 
 ## CI Notes
 

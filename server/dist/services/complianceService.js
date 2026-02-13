@@ -3,6 +3,7 @@ import { complianceIssueListSchema } from "./schemas.js";
 import { runJsonTask } from "./orchestrationService.js";
 import { buildPromptBundle } from "./promptBuilderService.js";
 import { enforceComplianceGuardrails } from "./aiGuardrailService.js";
+import { deidentifyEncounterContext } from "../ai/deidentify.js";
 function fingerprint(value) {
     return createHash("sha256").update(value).digest("hex").slice(0, 24);
 }
@@ -74,22 +75,36 @@ export function generateComplianceIssues(input) {
     return complianceIssueListSchema.parse(issues);
 }
 export async function generateComplianceIssuesOrchestrated(input, promptProfile) {
+    const deidentified = deidentifyEncounterContext({
+        noteContent: input.noteContent,
+        selectedCodes: input.selectedCodes
+    });
+    const aiPayload = {
+        noteText: deidentified.noteText,
+        selectedCodes: deidentified.selectedCodes
+    };
     const prompt = buildPromptBundle({
         task: "compliance",
         profile: promptProfile
     });
-    const fallback = () => generateComplianceIssues(input);
+    const fallback = () => generateComplianceIssues({
+        noteContent: deidentified.noteText,
+        selectedCodes: deidentified.selectedCodes
+    });
     const result = await runJsonTask({
         task: "compliance",
         instructions: prompt.instructions,
-        input,
+        input: aiPayload,
         schema: complianceIssueListSchema,
         fallback,
         promptVersionId: prompt.versionId,
         promptProfileDigest: prompt.metadata.profileDigest,
         promptOverridesApplied: prompt.metadata.overridesApplied
     });
-    const guarded = enforceComplianceGuardrails(result.output, input);
+    const guarded = enforceComplianceGuardrails(result.output, {
+        noteContent: deidentified.noteText,
+        selectedCodes: deidentified.selectedCodes
+    });
     return {
         ...result,
         output: complianceIssueListSchema.parse(guarded.output),

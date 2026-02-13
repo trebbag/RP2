@@ -45,9 +45,7 @@ export declare function enforceComplianceGuardrails(issues: ComplianceIssueLike[
     noteContent: string;
     selectedCodes: string[];
 }): GuardrailResult<ComplianceIssueLike[]>;
-export declare function enforceComposeGuardrails(output: ComposeOutputLike, input: {
-    patientName: string;
-}): GuardrailResult<ComposeOutputLike>;
+export declare function enforceComposeGuardrails(output: ComposeOutputLike): GuardrailResult<ComposeOutputLike>;
 export declare function enforceDiarizationGuardrails(input: {
     segments: DiarizationSegmentLike[];
     transcriptText: string;

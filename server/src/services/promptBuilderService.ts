@@ -61,9 +61,9 @@ const TASK_INSTRUCTIONS: Record<AiPromptTask, string[]> = {
   ],
   compose: [
     "You are a medical documentation composer.",
-    "Given an original clinical note and patient name, produce:",
+    "Given a de-identified clinical note, produce:",
     "- enhancedNote: professionally structured and concise clinician-facing note.",
-    "- patientSummary: plain-language summary for patient handoff.",
+    "- patientSummary: plain-language summary for patient handoff, with generic title `Visit Summary for Patient`.",
     "- traceId: short identifier prefixed with trace_.",
     "- stages: exactly four completed stages:",
     "  1 Analyzing Content",
@@ -224,10 +224,7 @@ export function buildPromptBundle(input: PromptBuildInput): PromptBundle {
   ]
 
   if (input.task === "compose") {
-    sections.push(
-      "",
-      `Patient summary language must be ${profile.summaryLanguage}.`
-    )
+    sections.push("", `Patient summary language must be ${profile.summaryLanguage}.`)
   }
 
   if (parsedOverrides.globalLines.length > 0 || taskOverrideLines.length > 0 || parsedOverrides.normalizedText.length > 0) {

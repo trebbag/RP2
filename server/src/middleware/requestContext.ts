@@ -9,18 +9,11 @@ export function requestContext(req: BaseRequest, res: Response, next: NextFuncti
   res.setHeader("x-request-id", requestId)
 
   const start = Date.now()
-  logger.info("request.start", {
-    requestId,
-    method: req.method,
-    path: req.path,
-    ip: req.ip
-  })
 
   res.on("finish", () => {
-    logger.info("request.finish", {
+    logger.info("request", {
       requestId,
-      method: req.method,
-      path: req.path,
+      endpoint: `${req.method} ${req.path}`,
       statusCode: res.statusCode,
       durationMs: Date.now() - start
     })

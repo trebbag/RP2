@@ -100,7 +100,6 @@ test("golden eval: compose task emits structured note + patient summary", async 
   const fixture = await readFixture<{
     input: {
       noteContent: string
-      patientName: string
     }
     expectations: {
       requiredEnhancedFragments: string[]

@@ -15,6 +15,7 @@
     "build": "npm run build:server && npm run build:web",
     "preview": "vite preview",
     "lint": "echo 'No lint configured'",
+    "lint:phi": "node ./scripts/lint_phi.mjs",
     "typecheck:web": "tsc --noEmit",
     "typecheck:server": "npm --workspace @revenuepilot/server run typecheck",
     "typecheck": "npm run typecheck:web && npm run typecheck:server",

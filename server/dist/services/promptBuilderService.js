@@ -28,9 +28,9 @@ const TASK_INSTRUCTIONS = {
     ],
     compose: [
         "You are a medical documentation composer.",
-        "Given an original clinical note and patient name, produce:",
+        "Given a de-identified clinical note, produce:",
         "- enhancedNote: professionally structured and concise clinician-facing note.",
-        "- patientSummary: plain-language summary for patient handoff.",
+        "- patientSummary: plain-language summary for patient handoff, with generic title `Visit Summary for Patient`.",
         "- traceId: short identifier prefixed with trace_.",
         "- stages: exactly four completed stages:",
         "  1 Analyzing Content",

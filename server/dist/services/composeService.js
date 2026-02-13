@@ -3,6 +3,7 @@ import { composeOutputSchema } from "./schemas.js";
 import { runJsonTask } from "./orchestrationService.js";
 import { buildPromptBundle } from "./promptBuilderService.js";
 import { enforceComposeGuardrails } from "./aiGuardrailService.js";
+import { deidentifyEncounterContext } from "../ai/deidentify.js";
 export const COMPOSE_STAGES = [
     { id: 1, title: "Analyzing Content", status: "completed" },
     { id: 2, title: "Enhancing Structure", status: "completed" },
@@ -25,7 +26,7 @@ function toSentenceCase(input) {
 export function composeNote(input) {
     const enhancedNote = toSentenceCase(input.noteContent);
     const summary = [
-        `Visit Summary for ${input.patientName || "Patient"}`,
+        "Visit Summary for Patient",
         "",
         "What we discussed:",
         "- Your symptoms and current concerns were reviewed in detail.",
@@ -37,7 +38,7 @@ export function composeNote(input) {
         "- Schedule your recommended follow-up appointment."
     ].join("\n");
     const traceId = `trace_${createHash("sha256")
-        .update(`${input.patientName}|${input.noteContent}|${Date.now()}`)
+        .update(`${input.noteContent}|${Date.now()}`)
         .digest("hex")
         .slice(0, 16)}`;
     return composeOutputSchema.parse({
@@ -48,18 +49,23 @@ export function composeNote(input) {
     });
 }
 export async function composeNoteOrchestrated(input, promptProfile) {
+    const deidentified = deidentifyEncounterContext({
+        noteContent: input.noteContent
+    });
+    const aiPayload = {
+        noteText: deidentified.noteText
+    };
     const prompt = buildPromptBundle({
         task: "compose",
-        profile: promptProfile,
-        runtimeContext: {
-            patientName: input.patientName
-        }
+        profile: promptProfile
     });
-    const fallback = () => composeNote(input);
+    const fallback = () => composeNote({
+        noteContent: deidentified.noteText
+    });
     const result = await runJsonTask({
         task: "compose",
         instructions: prompt.instructions,
-        input,
+        input: aiPayload,
         schema: composeOutputSchema,
         fallback,
         promptVersionId: prompt.versionId,
@@ -67,9 +73,7 @@ export async function composeNoteOrchestrated(input, promptProfile) {
         promptOverridesApplied: prompt.metadata.overridesApplied,
         maxOutputTokens: 2400
     });
-    const guarded = enforceComposeGuardrails(result.output, {
-        patientName: input.patientName
-    });
+    const guarded = enforceComposeGuardrails(result.output);
     return {
         ...result,
         output: composeOutputSchema.parse(guarded.output),

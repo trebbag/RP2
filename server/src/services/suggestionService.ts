@@ -3,6 +3,7 @@ import { suggestionListSchema } from "./schemas.js"
 import { runJsonTask } from "./orchestrationService.js"
 import { buildPromptBundle, type PromptProfile } from "./promptBuilderService.js"
 import { enforceSuggestionGuardrails } from "./aiGuardrailService.js"
+import { deidentifyEncounterContext } from "../ai/deidentify.js"
 
 interface SuggestionInput {
   noteContent: string
@@ -140,15 +141,31 @@ export function generateSuggestions(input: SuggestionInput) {
 }
 
 export async function generateSuggestionsOrchestrated(input: SuggestionInput, promptProfile?: PromptProfile) {
+  const deidentified = deidentifyEncounterContext({
+    noteContent: input.noteContent,
+    transcriptText: input.transcriptText,
+    chartContext: input.chartContext ?? null
+  })
+  const aiPayload = {
+    noteText: deidentified.noteText,
+    transcriptText: deidentified.transcriptText,
+    chartFacts: deidentified.chartFacts
+  }
+
   const prompt = buildPromptBundle({
     task: "suggestions",
     profile: promptProfile
   })
-  const fallback = () => generateSuggestions(input)
+  const fallback = () =>
+    generateSuggestions({
+      noteContent: deidentified.noteText,
+      transcriptText: deidentified.transcriptText,
+      chartContext: deidentified.chartFacts
+    })
   const result = await runJsonTask({
     task: "suggestions",
     instructions: prompt.instructions,
-    input,
+    input: aiPayload,
     schema: suggestionListSchema,
     fallback,
     promptVersionId: prompt.versionId,
@@ -156,8 +173,8 @@ export async function generateSuggestionsOrchestrated(input: SuggestionInput, pr
     promptOverridesApplied: prompt.metadata.overridesApplied
   })
   const guarded = enforceSuggestionGuardrails(result.output, {
-    noteContent: input.noteContent,
-    transcriptText: input.transcriptText
+    noteContent: deidentified.noteText,
+    transcriptText: deidentified.transcriptText
   })
   return {
     ...result,

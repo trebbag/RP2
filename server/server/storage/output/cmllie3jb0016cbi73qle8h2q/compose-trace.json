@@ -1,0 +1,46 @@
+{
+  "runId": "cmllie3jb0016cbi73qle8h2q",
+  "encounterId": "ENC-260213-481",
+  "orchestration": {
+    "traceId": "trace_8db4de33-e66d-4ef6-849a-6c18ef666e7c",
+    "task": "compose",
+    "provider": "heuristic",
+    "model": "heuristic-local",
+    "promptVersionId": "prompt-2026.02.11-compose-4bb94ac8d5bc8d17",
+    "promptProfileDigest": "315dcf5b00d69506",
+    "promptOverridesApplied": true,
+    "fallback": true,
+    "startedAt": "2026-02-13T23:18:39.725Z",
+    "completedAt": "2026-02-13T23:18:39.725Z",
+    "durationMs": 0,
+    "inputHash": "342789d3f46c3f28d5e4ed5fde1f2a05abd22e97c245109ffa4cd803a152614d",
+    "outputHash": "93990760cb32bf4b880a2437e95f52dd3c7337591f19cf1f37f6951724001abb",
+    "error": "RP2_OFFLINE_AI=1"
+  },
+  "outputTraceId": "trace_6a4f2227f2ca33a4",
+  "promptVersionId": "prompt-2026.02.11-compose-4bb94ac8d5bc8d17",
+  "stages": [
+    {
+      "id": 1,
+      "title": "Analyzing Content",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "title": "Enhancing Structure",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "title": "Beautifying Language",
+      "status": "completed"
+    },
+    {
+      "id": 4,
+      "title": "Final Review",
+      "status": "completed"
+    }
+  ],
+  "guardrailWarnings": [],
+  "createdAt": "2026-02-13T23:18:39.725Z"
+}

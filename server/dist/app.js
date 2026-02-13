@@ -28,7 +28,8 @@ export function createApp() {
     app.use(requestContext);
     app.use(morgan((tokens, req, res) => {
         const rawUrl = tokens.url(req, res) ?? "";
-        const safeUrl = rawUrl.replace(/access_token=[^&]+/g, "access_token=[redacted]");
+        const withoutQuery = rawUrl.split("?")[0] ?? rawUrl;
+        const safeUrl = withoutQuery.replace(/access_token=[^&]+/g, "access_token=[redacted]");
         return `${tokens.method(req, res)} ${safeUrl} ${tokens.status(req, res)} ${tokens["response-time"](req, res)} ms request_id=${tokens.res(req, res, "x-request-id")}`;
     }));
     app.use(express.json({ limit: "2mb" }));

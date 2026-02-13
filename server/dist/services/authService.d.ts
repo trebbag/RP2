@@ -7,8 +7,8 @@ export declare function verifyPassword(password: string, hashedPassword: string)
 export declare function createRefreshSession(userId: string, meta?: RequestMeta): Promise<{
     token: string;
     session: {
-        ip: string | null;
         id: string;
+        ip: string | null;
         userAgent: string | null;
         createdAt: Date;
         refreshTokenHash: string;
@@ -34,8 +34,8 @@ export declare function rotateRefreshSession(refreshToken: string, meta?: Reques
     };
     token: string;
     session: {
-        ip: string | null;
         id: string;
+        ip: string | null;
         userAgent: string | null;
         createdAt: Date;
         refreshTokenHash: string;
