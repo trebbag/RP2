@@ -46,7 +46,7 @@ RP2_POSTGRES_PORT=55432 npm run db:up
 
 ```bash
 npm --workspace @revenuepilot/server run prisma:generate
-npm --workspace @revenuepilot/server run prisma:push
+npm --workspace @revenuepilot/server run prisma:migrate:deploy
 ```
 
 5. (Optional) Seed demo data.
@@ -67,9 +67,17 @@ npm run dev
 ## Verification Commands
 
 ```bash
+npm run format:check
+npm run lint
 npm run typecheck
 npm run test
 npm run build
+```
+
+To auto-format the repo:
+
+```bash
+npm run format
 ```
 
 ## Local Admin Bootstrap Helper
@@ -81,6 +89,7 @@ npm run admin:create-local
 ```
 
 Defaults:
+
 - Email: `admin@rp2.local`
 - Password: `AdminPass#12345`
 
@@ -109,6 +118,7 @@ npm run test:soak
 ```
 
 This runs:
+
 - Encounter flow integration (schedule -> visit -> wizard -> finalize -> artifact download)
 - Auth + MFA lifecycle integration checks
 - Role matrix + audit retention + admin operations authorization checks
@@ -171,6 +181,7 @@ npm run test:integration:prepare
 - `POST /api/auth/mfa/enroll/complete` (when `MFA_REQUIRED=true`)
 - `GET /api/auth/me`
 - `POST /api/admin/audit-retention/enforce` (admin only)
+- `POST /api/admin/transcript-retention/enforce` (admin only)
 - `POST /api/admin/dispatch/retry-due` (admin only)
 - `GET /api/admin/dispatch/jobs` (admin only)
 - `POST /api/admin/dispatch/:jobId/replay` (admin only)
@@ -188,9 +199,12 @@ npm run test:integration:prepare
 
 ## Auth Strategy
 
+- Primary production login path is **OIDC** (`AUTH_MODE=oidc`).
+- Local password auth is intended for local development only (`AUTH_MODE=local`).
+
 - Access token: JWT bearer token (`Authorization: Bearer ...`), short-lived (`SESSION_TTL_HOURS`).
 - Refresh token: HTTP-only cookie (`rp_refresh`) backed by persisted `AuthSession` rows.
-- Production defaults: `SESSION_TTL_HOURS=12`, `REFRESH_TOKEN_TTL_HOURS=168`, `ALLOW_DEV_LOGIN=false`, `MFA_REQUIRED=true`.
+- Production defaults: `SESSION_TTL_HOURS=12`, `REFRESH_TOKEN_TTL_HOURS=168`, `ALLOW_DEV_LOGIN=false`, `AUTH_MODE=oidc`.
 - Production login routes:
   - `GET /api/auth/policy`
   - `POST /api/auth/register-first` (bootstrap only when no users exist)
@@ -207,6 +221,20 @@ npm run test:integration:prepare
   - `POST /api/auth/mfa/enroll/complete` (required enrollment flow)
 - Dev login route (`POST /api/auth/dev-login`) is gated by `ALLOW_DEV_LOGIN` and always disabled in production mode.
 - In production mode, server startup now fails fast if insecure auth/session settings are configured.
+
+### OIDC Routes
+
+When `AUTH_MODE=oidc`:
+
+- `GET /api/auth/oidc/login` redirects to your IdP authorization URL and sets an HttpOnly state cookie.
+- `GET /api/auth/oidc/callback` validates state/nonce/PKCE, provisions user + default org membership if needed, sets refresh cookie, and redirects back to the frontend.
+
+OIDC configuration:
+
+- `OIDC_ISSUER_URL`
+- `OIDC_CLIENT_ID`
+- `OIDC_CLIENT_SECRET`
+- `OIDC_REDIRECT_URI` (must be registered with the IdP)
 
 ## Security Notes
 

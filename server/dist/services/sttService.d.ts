@@ -21,7 +21,7 @@ export interface DiarizedTranscriptSegment {
 export interface TranscribeOutput {
     transcriptText: string;
     segments: DiarizedTranscriptSegment[];
-    provider: "openai" | "fallback";
+    provider: "openai" | "offlineMock" | "fallback";
     warnings: string[];
     diarizationTrace?: OrchestrationTrace;
 }

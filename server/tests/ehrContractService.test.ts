@@ -67,7 +67,11 @@ test("builds vendor JSON contract for configured vendor", async () => {
 
   assert.equal(result.contractType, "VENDOR_JSON")
   assert.equal(result.contentType, "application/json")
-  const parsed = JSON.parse(result.body) as { sourceSystem: string; athenaEncounterId: string; dispatchMetadata?: { idempotencyKey?: string } }
+  const parsed = JSON.parse(result.body) as {
+    sourceSystem: string
+    athenaEncounterId: string
+    dispatchMetadata?: { idempotencyKey?: string }
+  }
   assert.equal(parsed.sourceSystem, "RevenuePilot")
   assert.equal(parsed.athenaEncounterId, basePayload.encounterExternalId)
   assert.equal(parsed.dispatchMetadata?.idempotencyKey, "dispatch-key-001")

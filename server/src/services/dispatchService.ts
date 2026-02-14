@@ -6,6 +6,7 @@ import { DispatchStatus, DispatchTarget, Prisma } from "@prisma/client"
 import { env } from "../config/env.js"
 import { logger } from "../lib/logger.js"
 import { prisma } from "../lib/prisma.js"
+import { runWithRls } from "../lib/rls.js"
 import { writeSystemAuditLog } from "../middleware/audit.js"
 import { sendOperationalAlert } from "./alertingService.js"
 import { buildDispatchContract, type DispatchPayloadInput } from "./ehrContractService.js"
@@ -15,6 +16,7 @@ const DISPATCH_MLLP_TIMEOUT_MS = 12_000
 let lastDeadLetterAlertAt = 0
 
 interface EnqueueDispatchJobInput {
+  orgId: string
   encounterId: string
   noteId?: string
   payload: DispatchPayloadInput
@@ -108,9 +110,7 @@ async function sendHttpsDispatchWithClientCert(input: {
   headers: Record<string, string>
 }): Promise<{ statusCode: number; body: string; headers: Record<string, string | string[] | undefined> }> {
   if (!env.DISPATCH_CLIENT_CERT_PATH || !env.DISPATCH_CLIENT_KEY_PATH) {
-    throw new Error(
-      "Mutual TLS dispatch requires DISPATCH_CLIENT_CERT_PATH and DISPATCH_CLIENT_KEY_PATH"
-    )
+    throw new Error("Mutual TLS dispatch requires DISPATCH_CLIENT_CERT_PATH and DISPATCH_CLIENT_KEY_PATH")
   }
 
   const cert = await fs.readFile(env.DISPATCH_CLIENT_CERT_PATH)
@@ -363,150 +363,194 @@ export async function enqueueDispatchJob(input: EnqueueDispatchJobInput) {
   const target = resolveDispatchTarget()
   const contract = buildDispatchContract(input.payload)
 
-  return prisma.dispatchJob.create({
-    data: {
-      encounterId: input.encounterId,
-      noteId: input.noteId,
-      target,
-      status: DispatchStatus.PENDING,
-      contractType: contract.contractType,
-      attemptCount: 0,
-      maxAttempts: env.DISPATCH_MAX_ATTEMPTS,
-      payload: input.payload as never,
-      createdById: input.createdById
+  return runWithRls(input.orgId, async () => {
+    return prisma.dispatchJob.create({
+      data: {
+        orgId: input.orgId,
+        encounterId: input.encounterId,
+        noteId: input.noteId,
+        target,
+        status: DispatchStatus.PENDING,
+        contractType: contract.contractType,
+        attemptCount: 0,
+        maxAttempts: env.DISPATCH_MAX_ATTEMPTS,
+        payload: input.payload as never,
+        createdById: input.createdById
+      }
+    })
+  })
+}
+
+export async function attemptDispatchJob(jobId: string, input?: { orgId?: string; force?: boolean }) {
+  const orgId = input?.orgId
+  const runner = orgId ? (fn: () => Promise<any>) => runWithRls(orgId, fn) : (fn: () => Promise<any>) => fn()
+
+  return runner(async () => {
+    const job = await prisma.dispatchJob.findFirst({
+      where: {
+        id: jobId,
+        ...(orgId ? { orgId } : {})
+      }
+    })
+    if (!job) return null
+
+    if (job.status === DispatchStatus.DISPATCHED) {
+      return job
+    }
+
+    if (job.status === DispatchStatus.DEAD_LETTER && !input?.force) {
+      return job
+    }
+
+    const nextAttempt = job.attemptCount + 1
+
+    try {
+      const result = await sendDispatchPayload({
+        payload: job.payload as unknown as DispatchPayloadInput,
+        target: job.target,
+        jobId: job.id
+      })
+
+      await prisma.dispatchJob.updateMany({
+        where: { id: job.id, orgId: job.orgId },
+        data: {
+          status: DispatchStatus.DISPATCHED,
+          dispatchedAt: new Date(),
+          deadLetteredAt: null,
+          attemptCount: nextAttempt,
+          contractType: result.contractType,
+          externalMessageId: result.externalMessageId,
+          response: {
+            statusCode: result.statusCode,
+            body: result.body,
+            idempotencyKey: result.idempotencyKey
+          } as never,
+          lastError: null,
+          nextRetryAt: null
+        }
+      })
+
+      await writeSystemAuditLog({
+        action: "dispatch_succeeded",
+        entity: "dispatch_job",
+        entityId: job.id,
+        actorId: job.createdById ?? undefined,
+        encounterId: job.encounterId,
+        orgId: job.orgId,
+        details: {
+          attemptCount: nextAttempt,
+          target: job.target,
+          idempotencyKey: result.idempotencyKey
+        }
+      })
+
+      return prisma.dispatchJob.findFirstOrThrow({
+        where: { id: job.id, orgId: job.orgId }
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Dispatch failed"
+      const exhausted = nextAttempt >= job.maxAttempts
+      const status = exhausted ? DispatchStatus.DEAD_LETTER : DispatchStatus.RETRYING
+      await prisma.dispatchJob.updateMany({
+        where: { id: job.id, orgId: job.orgId },
+        data: {
+          status,
+          attemptCount: nextAttempt,
+          lastError: message,
+          nextRetryAt: exhausted ? null : computeNextRetry(nextAttempt),
+          deadLetteredAt: exhausted ? new Date() : null,
+          response: {
+            error: message
+          } as never
+        }
+      })
+
+      const updated = await prisma.dispatchJob.findFirstOrThrow({
+        where: { id: job.id, orgId: job.orgId }
+      })
+
+      await writeSystemAuditLog({
+        action: exhausted ? "dispatch_failed_terminal" : "dispatch_failed_retrying",
+        entity: "dispatch_job",
+        entityId: job.id,
+        actorId: job.createdById ?? undefined,
+        encounterId: job.encounterId,
+        orgId: job.orgId,
+        details: {
+          status,
+          attemptCount: nextAttempt,
+          maxAttempts: job.maxAttempts,
+          nextRetryAt: updated.nextRetryAt?.toISOString() ?? null,
+          error: message
+        }
+      })
+
+      return updated
     }
   })
 }
 
-export async function attemptDispatchJob(jobId: string, options?: { force?: boolean }) {
-  const job = await prisma.dispatchJob.findUnique({
-    where: { id: jobId }
-  })
-  if (!job) return null
+export async function processDueDispatchJobs(limit = 20, orgId?: string) {
+  if (!orgId) {
+    const orgs = await prisma.organization.findMany({
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+      take: 500
+    })
 
-  if (job.status === DispatchStatus.DISPATCHED) {
-    return job
+    const processed: any[] = []
+    for (const org of orgs) {
+      const results = await processDueDispatchJobs(limit, org.id)
+      processed.push(...results)
+    }
+
+    return processed
   }
 
-  if (job.status === DispatchStatus.DEAD_LETTER && !options?.force) {
-    return job
-  }
-
-  const nextAttempt = job.attemptCount + 1
-
-  try {
-    const result = await sendDispatchPayload({
-      payload: job.payload as unknown as DispatchPayloadInput,
-      target: job.target,
-      jobId: job.id
-    })
-
-    const updated = await prisma.dispatchJob.update({
-      where: { id: job.id },
-      data: {
-        status: DispatchStatus.DISPATCHED,
-        dispatchedAt: new Date(),
-        deadLetteredAt: null,
-        attemptCount: nextAttempt,
-        contractType: result.contractType,
-        externalMessageId: result.externalMessageId,
-        response: {
-          statusCode: result.statusCode,
-          body: result.body,
-          idempotencyKey: result.idempotencyKey
-        } as never,
-        lastError: null,
-        nextRetryAt: null
-      }
-    })
-
-    await writeSystemAuditLog({
-      action: "dispatch_succeeded",
-      entity: "dispatch_job",
-      entityId: job.id,
-      actorId: job.createdById ?? undefined,
-      encounterId: job.encounterId,
-      details: {
-        attemptCount: nextAttempt,
-        target: job.target,
-        idempotencyKey: result.idempotencyKey
-      }
-    })
-
-    return updated
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Dispatch failed"
-    const exhausted = nextAttempt >= job.maxAttempts
-    const status = exhausted ? DispatchStatus.DEAD_LETTER : DispatchStatus.RETRYING
-    const updated = await prisma.dispatchJob.update({
-      where: { id: job.id },
-      data: {
-        status,
-        attemptCount: nextAttempt,
-        lastError: message,
-        nextRetryAt: exhausted ? null : computeNextRetry(nextAttempt),
-        deadLetteredAt: exhausted ? new Date() : null,
-        response: {
-          error: message
-        } as never
-      }
-    })
-
-    await writeSystemAuditLog({
-      action: exhausted ? "dispatch_failed_terminal" : "dispatch_failed_retrying",
-      entity: "dispatch_job",
-      entityId: job.id,
-      actorId: job.createdById ?? undefined,
-      encounterId: job.encounterId,
-      details: {
-        status,
-        attemptCount: nextAttempt,
-        maxAttempts: job.maxAttempts,
-        nextRetryAt: updated.nextRetryAt?.toISOString() ?? null,
-        error: message
-      }
-    })
-
-    return updated
-  }
-}
-
-export async function processDueDispatchJobs(limit = 20) {
   const now = new Date()
-  const dueJobs = await prisma.dispatchJob.findMany({
-    where: {
-      status: {
-        in: [DispatchStatus.PENDING, DispatchStatus.RETRYING]
+  return runWithRls(orgId, async () => {
+    const dueJobs = await prisma.dispatchJob.findMany({
+      where: {
+        orgId,
+        status: {
+          in: [DispatchStatus.PENDING, DispatchStatus.RETRYING]
+        },
+        OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }]
       },
-      OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }]
-    },
-    orderBy: { createdAt: "asc" },
-    take: limit
+      orderBy: { createdAt: "asc" },
+      take: limit
+    })
+
+    const processed = []
+    for (const job of dueJobs) {
+      const result = await attemptDispatchJob(job.id, { orgId })
+      if (result) processed.push(result)
+    }
+
+    return processed
   })
-
-  const processed = []
-  for (const job of dueJobs) {
-    const result = await attemptDispatchJob(job.id)
-    if (result) processed.push(result)
-  }
-
-  return processed
 }
 
-export async function deadLetterSummary(windowMinutes = env.DISPATCH_DEAD_LETTER_ALERT_WINDOW_MINUTES) {
+export async function deadLetterSummary(windowMinutes = env.DISPATCH_DEAD_LETTER_ALERT_WINDOW_MINUTES, orgId?: string) {
+  if (!orgId) {
+    throw new Error("deadLetterSummary requires orgId when RLS is enabled")
+  }
+
   const windowStart = new Date(Date.now() - Math.max(1, windowMinutes) * 60 * 1000)
+  const baseWhere: Prisma.DispatchJobWhereInput = orgId ? { orgId } : {}
   const [deadLetterRecentCount, retryingCount, pendingCount] = await Promise.all([
     prisma.dispatchJob.count({
       where: {
+        ...baseWhere,
         status: DispatchStatus.DEAD_LETTER,
         updatedAt: { gte: windowStart }
       }
     }),
     prisma.dispatchJob.count({
-      where: { status: DispatchStatus.RETRYING }
+      where: { ...baseWhere, status: DispatchStatus.RETRYING }
     }),
     prisma.dispatchJob.count({
-      where: { status: DispatchStatus.PENDING }
+      where: { ...baseWhere, status: DispatchStatus.PENDING }
     })
   ])
 
@@ -521,52 +565,76 @@ export async function deadLetterSummary(windowMinutes = env.DISPATCH_DEAD_LETTER
 export async function emitDeadLetterAlertIfNeeded() {
   if (env.DISPATCH_DEAD_LETTER_ALERT_THRESHOLD <= 0) return
 
-  const summary = await deadLetterSummary()
-  if (summary.deadLetterRecentCount < env.DISPATCH_DEAD_LETTER_ALERT_THRESHOLD) return
+  const orgs = await prisma.organization.findMany({
+    select: { id: true, slug: true, name: true },
+    orderBy: { createdAt: "asc" },
+    take: 500
+  })
 
   const cooldownMs = env.DISPATCH_DEAD_LETTER_ALERT_COOLDOWN_MINUTES * 60 * 1000
   const now = Date.now()
   if (now - lastDeadLetterAlertAt < cooldownMs) return
 
-  lastDeadLetterAlertAt = now
-  logger.warn("dispatch.dead_letter_threshold_exceeded", {
-    deadLetterRecentCount: summary.deadLetterRecentCount,
-    threshold: env.DISPATCH_DEAD_LETTER_ALERT_THRESHOLD,
-    windowMinutes: summary.windowMinutes,
-    retryingCount: summary.retryingCount,
-    pendingCount: summary.pendingCount
-  })
+  for (const org of orgs) {
+    const summary = await runWithRls(org.id, () =>
+      deadLetterSummary(env.DISPATCH_DEAD_LETTER_ALERT_WINDOW_MINUTES, org.id)
+    )
+    if (summary.deadLetterRecentCount < env.DISPATCH_DEAD_LETTER_ALERT_THRESHOLD) continue
 
-  await sendOperationalAlert({
-    source: "dispatch-worker",
-    event: "dlq-threshold-breach",
-    severity: "critical",
-    title: "Dispatch DLQ threshold exceeded",
-    message: `${summary.deadLetterRecentCount} jobs reached dead-letter in the last ${summary.windowMinutes} minutes.`,
-    details: {
+    lastDeadLetterAlertAt = now
+    logger.warn("dispatch.dead_letter_threshold_exceeded", {
+      orgId: org.id,
+      orgSlug: org.slug,
+      orgName: org.name,
+      deadLetterRecentCount: summary.deadLetterRecentCount,
       threshold: env.DISPATCH_DEAD_LETTER_ALERT_THRESHOLD,
+      windowMinutes: summary.windowMinutes,
       retryingCount: summary.retryingCount,
       pendingCount: summary.pendingCount
-    }
-  })
+    })
 
-  await writeSystemAuditLog({
-    action: "dispatch_dead_letter_alert",
-    entity: "dispatch_monitor",
-    entityId: `dlq-${new Date().toISOString()}`,
-    details: summary
-  })
+    await sendOperationalAlert({
+      source: "dispatch-worker",
+      event: "dlq-threshold-breach",
+      severity: "critical",
+      title: `Dispatch DLQ threshold exceeded (${org.slug})`,
+      message: `${summary.deadLetterRecentCount} jobs reached dead-letter in the last ${summary.windowMinutes} minutes for ${org.name}.`,
+      details: {
+        orgId: org.id,
+        orgSlug: org.slug,
+        threshold: env.DISPATCH_DEAD_LETTER_ALERT_THRESHOLD,
+        retryingCount: summary.retryingCount,
+        pendingCount: summary.pendingCount
+      }
+    })
+
+    await writeSystemAuditLog({
+      action: "dispatch_dead_letter_alert",
+      entity: "dispatch_monitor",
+      entityId: `dlq-${org.id}-${new Date().toISOString()}`,
+      details: {
+        orgId: org.id,
+        orgSlug: org.slug,
+        orgName: org.name,
+        ...summary
+      }
+    })
+
+    break
+  }
 }
 
-export async function listDispatchJobs(input?: {
+export async function listDispatchJobs(input: {
+  orgId: string
   status?: DispatchStatus
   limit?: number
   encounterId?: string
 }) {
-  const take = Math.max(1, Math.min(input?.limit ?? 50, 200))
+  const take = Math.max(1, Math.min(input.limit ?? 50, 200))
   const where: Prisma.DispatchJobWhereInput = {
-    ...(input?.status ? { status: input.status } : {}),
-    ...(input?.encounterId ? { encounterId: input.encounterId } : {})
+    orgId: input.orgId,
+    ...(input.status ? { status: input.status } : {}),
+    ...(input.encounterId ? { encounterId: input.encounterId } : {})
   }
 
   return prisma.dispatchJob.findMany({
@@ -576,9 +644,9 @@ export async function listDispatchJobs(input?: {
   })
 }
 
-export async function replayDispatchJob(jobId: string, actorId?: string) {
-  const existing = await prisma.dispatchJob.findUnique({
-    where: { id: jobId }
+export async function replayDispatchJob(jobId: string, orgId: string, actorId?: string) {
+  const existing = await prisma.dispatchJob.findFirst({
+    where: { id: jobId, orgId }
   })
 
   if (!existing) return null
@@ -586,8 +654,8 @@ export async function replayDispatchJob(jobId: string, actorId?: string) {
     throw new Error("Cannot replay a successfully dispatched job")
   }
 
-  await prisma.dispatchJob.update({
-    where: { id: jobId },
+  await prisma.dispatchJob.updateMany({
+    where: { id: jobId, orgId },
     data: {
       status: DispatchStatus.PENDING,
       attemptCount: 0,
@@ -603,24 +671,25 @@ export async function replayDispatchJob(jobId: string, actorId?: string) {
     entityId: jobId,
     actorId,
     encounterId: existing.encounterId,
+    orgId,
     details: {
       previousStatus: existing.status,
       previousAttemptCount: existing.attemptCount
     }
   })
 
-  return attemptDispatchJob(jobId, { force: true })
+  return attemptDispatchJob(jobId, { orgId, force: true })
 }
 
-export async function markDispatchJobDeadLetter(jobId: string, reason: string, actorId?: string) {
-  const existing = await prisma.dispatchJob.findUnique({
-    where: { id: jobId }
+export async function markDispatchJobDeadLetter(jobId: string, orgId: string, reason: string, actorId?: string) {
+  const existing = await prisma.dispatchJob.findFirst({
+    where: { id: jobId, orgId }
   })
 
   if (!existing) return null
 
-  const updated = await prisma.dispatchJob.update({
-    where: { id: jobId },
+  await prisma.dispatchJob.updateMany({
+    where: { id: jobId, orgId },
     data: {
       status: DispatchStatus.DEAD_LETTER,
       deadLetteredAt: new Date(),
@@ -629,12 +698,17 @@ export async function markDispatchJobDeadLetter(jobId: string, reason: string, a
     }
   })
 
+  const updated = await prisma.dispatchJob.findFirstOrThrow({
+    where: { id: jobId, orgId }
+  })
+
   await writeSystemAuditLog({
     action: "dispatch_marked_dead_letter",
     entity: "dispatch_job",
     entityId: updated.id,
     actorId,
     encounterId: updated.encounterId,
+    orgId,
     details: {
       reason: updated.lastError,
       previousStatus: existing.status

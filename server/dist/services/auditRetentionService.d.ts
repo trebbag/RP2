@@ -1,4 +1,5 @@
 interface AuditRetentionInput {
+    orgId: string;
     now?: Date;
     dryRun?: boolean;
 }
@@ -9,5 +10,5 @@ export interface AuditRetentionReport {
     eligibleCount: number;
     deletedCount: number;
 }
-export declare function runAuditRetentionPolicy(input?: AuditRetentionInput): Promise<AuditRetentionReport>;
+export declare function runAuditRetentionPolicy(input: AuditRetentionInput): Promise<AuditRetentionReport>;
 export {};

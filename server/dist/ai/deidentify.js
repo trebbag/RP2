@@ -1,4 +1,5 @@
 import { assertNoPhiPayload, isForbiddenPhiKey } from "./phiGuards.js";
+import { asDeidentifiedText } from "../phi.js";
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const PHONE_PATTERN = /\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b/g;
 const SSN_PATTERN = /\b\d{3}-?\d{2}-?\d{4}\b/g;
@@ -40,7 +41,7 @@ export function deidentifyText(text) {
         total: emailStep.count + phoneStep.count + ssnStep.count + dateStep.count
     };
     return {
-        text: dateStep.text,
+        text: asDeidentifiedText(dateStep.text),
         redactionSummary
     };
 }

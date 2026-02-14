@@ -13,6 +13,7 @@ import {
   fetchCurrentUser,
   loginWithPassword,
   registerFirstUser,
+  startOidcLogin,
   startMfaEnrollment,
   type AuthPolicyRecord,
   type AuthUserRecord
@@ -70,6 +71,8 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
   }, [])
 
   const isBootstrapMode = hasUsers === false
+  const authMode = policy?.authMode ?? "local"
+  const isOidcMode = authMode === "oidc"
 
   const handleLogin = async () => {
     setIsLoading(true)
@@ -190,16 +193,18 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         <CardHeader className="space-y-2">
           <CardTitle className="text-xl flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-slate-700" />
-            {isBootstrapMode ? "Create First Account" : "Sign In"}
+            {isOidcMode ? "Sign In With SSO" : isBootstrapMode ? "Create First Account" : "Sign In"}
           </CardTitle>
           <CardDescription>
-            {isBootstrapMode
-              ? "No users exist yet. Create the first administrator account to initialize the workspace."
-              : "Authenticate to continue into RevenuePilot clinical workflows."}
+            {isOidcMode
+              ? "Use your organization SSO to authenticate into RevenuePilot."
+              : isBootstrapMode
+                ? "No users exist yet. Create the first administrator account to initialize the workspace."
+                : "Authenticate to continue into RevenuePilot clinical workflows."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isBootstrapMode && (
+          {isBootstrapMode && !isOidcMode && (
             <div className="space-y-2">
               <Label htmlFor="bootstrap-name">Full Name</Label>
               <Input
@@ -211,31 +216,35 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="login-email">Email</Label>
-            <Input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="clinician@clinic.org"
-            />
-          </div>
+          {!isOidcMode && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="clinician@clinic.org"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="login-password">Password</Label>
-            <Input
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Enter your password"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Password</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                />
+              </div>
+            </>
+          )}
 
-          {isBootstrapMode && (
+          {isBootstrapMode && !isOidcMode && (
             <div className="space-y-2">
               <Label htmlFor="bootstrap-confirm-password">Confirm Password</Label>
               <Input
@@ -249,7 +258,7 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             </div>
           )}
 
-          {!isBootstrapMode && (requiresMfa || (policy?.mfaRequired && !requiresEnrollment)) && (
+          {!isBootstrapMode && !isOidcMode && (requiresMfa || (policy?.mfaRequired && !requiresEnrollment)) && (
             <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor={useBackupCode ? "login-backup" : "login-mfa"}>
@@ -277,11 +286,13 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             </div>
           )}
 
-          {!isBootstrapMode && requiresEnrollment && (
+          {!isBootstrapMode && !isOidcMode && requiresEnrollment && (
             <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-900">MFA Enrollment Required</p>
               {!enrollmentToken ? (
-                <p className="text-xs text-amber-800">Click "Start MFA Enrollment" to initialize your authenticator setup.</p>
+                <p className="text-xs text-amber-800">
+                  Click "Start MFA Enrollment" to initialize your authenticator setup.
+                </p>
               ) : (
                 <>
                   {enrollmentSecret && (
@@ -291,7 +302,12 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
                     </div>
                   )}
                   {enrollmentUri && (
-                    <a href={enrollmentUri} target="_blank" rel="noreferrer" className="text-xs underline text-amber-900">
+                    <a
+                      href={enrollmentUri}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs underline text-amber-900"
+                    >
                       Open otpauth URI
                     </a>
                   )}
@@ -311,7 +327,7 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             </div>
           )}
 
-          {!isBootstrapMode && enrollmentBackupCodes.length > 0 && (
+          {!isBootstrapMode && !isOidcMode && enrollmentBackupCodes.length > 0 && (
             <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 space-y-1">
               <p className="font-medium">Backup codes (save now)</p>
               <div className="grid grid-cols-2 gap-1">
@@ -329,7 +345,21 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             </div>
           )}
 
-          {isBootstrapMode ? (
+          {isOidcMode ? (
+            <Button
+              type="button"
+              className="w-full"
+              disabled={isLoading}
+              onClick={() => {
+                setIsLoading(true)
+                setErrorMessage(null)
+                startOidcLogin({ returnTo: window.location.href })
+              }}
+            >
+              <ShieldCheck className="w-4 h-4 mr-2" />
+              Continue with SSO
+            </Button>
+          ) : isBootstrapMode ? (
             <Button
               type="button"
               className="w-full"
@@ -372,24 +402,18 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
           )}
 
           {!isBootstrapMode && policy?.allowDevLogin && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={isLoading}
-              onClick={handleDevLogin}
-            >
+            <Button type="button" variant="outline" className="w-full" disabled={isLoading} onClick={handleDevLogin}>
               Use Dev Login
             </Button>
           )}
 
           <div className="text-xs text-slate-500 space-y-1">
-            {policy?.passwordMinLength ? (
+            {!isOidcMode && policy?.passwordMinLength ? (
               <p>Password policy: minimum {policy.passwordMinLength} characters with complexity rules.</p>
             ) : (
               <p>Password and MFA policies are enforced by the backend environment.</p>
             )}
-            {!isBootstrapMode && policy?.mfaRequired && <p>MFA is required for this environment.</p>}
+            {!isBootstrapMode && !isOidcMode && policy?.mfaRequired && <p>MFA is required for this environment.</p>}
           </div>
         </CardContent>
       </Card>

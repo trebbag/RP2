@@ -5,6 +5,8 @@ import { buildPromptBundle, type PromptProfile } from "./promptBuilderService.js
 import { enforceDiarizationGuardrails } from "./aiGuardrailService.js"
 import { deidentifyText } from "../ai/deidentify.js"
 import { logger } from "../lib/logger.js"
+import { getTranscriptionProvider } from "./transcription/providerFactory.js"
+import type { PhiText } from "../phi.js"
 
 interface TranscribeInput {
   filePath: string
@@ -29,7 +31,7 @@ export interface DiarizedTranscriptSegment {
 export interface TranscribeOutput {
   transcriptText: string
   segments: DiarizedTranscriptSegment[]
-  provider: "openai" | "fallback"
+  provider: "openai" | "offlineMock" | "fallback"
   warnings: string[]
   diarizationTrace?: OrchestrationTrace
 }
@@ -53,7 +55,10 @@ function normalizeSpeaker(value: string | undefined): string {
   return normalized.length > 0 ? normalized : "Speaker 1"
 }
 
-function naiveDiarization(text: string, speakerHint?: string): Array<{
+function naiveDiarization(
+  text: string,
+  speakerHint?: string
+): Array<{
   speaker: string
   speakerLabel?: string
   text: string
@@ -106,7 +111,8 @@ function allocateTimings(
     const rawDuration = Math.round(options.durationMs * weight)
     const minDuration = 600
     const remaining = options.baseStartMs + options.durationMs - cursor
-    const duration = index === segments.length - 1 ? Math.max(remaining, minDuration) : Math.max(rawDuration, minDuration)
+    const duration =
+      index === segments.length - 1 ? Math.max(remaining, minDuration) : Math.max(rawDuration, minDuration)
     const startMs = cursor
     const endMs = startMs + duration
     cursor = endMs
@@ -128,7 +134,11 @@ async function diarizeText(input: {
   speakerHints?: string[]
   promptProfile?: PromptProfile
 }) {
-  const hints = input.speakerHints?.filter(Boolean) ?? env.DIARIZATION_SPEAKERS.split(",").map((item) => item.trim()).filter(Boolean)
+  const hints =
+    input.speakerHints?.filter(Boolean) ??
+    env.DIARIZATION_SPEAKERS.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
   const prompt = buildPromptBundle({
     task: "diarization",
     profile: input.promptProfile,
@@ -178,19 +188,40 @@ export async function diarizeTranscriptText(input: {
 
 export async function transcribeAndDiarizeAudio(input: TranscribeInput): Promise<TranscribeOutput> {
   const warnings: string[] = []
-  const provider: "openai" | "fallback" = "fallback"
-  const transcriptText = ""
+  const provider = getTranscriptionProvider()
 
-  if (!transcriptText.trim()) {
-    warnings.push("External STT is disabled by PHI boundary policy. Provide transcript segments through trusted local ingestion.")
-    logger.info("stt.external_disabled_by_phi_boundary", {
+  let transcriptTextPhi: PhiText
+  try {
+    const transcription = await provider.transcribeAudioChunk({
       filePath: input.filePath,
       mimeType: input.mimeType
+    })
+    transcriptTextPhi = transcription.transcriptText
+    warnings.push(...(transcription.warnings ?? []))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown transcription provider error"
+    warnings.push(`Transcription failed: ${message}`)
+    logger.warn("stt.transcription_provider_error", {
+      provider: provider.name,
+      mimeType: input.mimeType,
+      filePath: input.filePath
     })
     return {
       transcriptText: "",
       segments: [],
-      provider,
+      provider: "fallback",
+      warnings,
+      diarizationTrace: undefined
+    }
+  }
+
+  const transcriptText = transcriptTextPhi.trim()
+  if (!transcriptText) {
+    warnings.push("No transcript text returned for audio chunk.")
+    return {
+      transcriptText: "",
+      segments: [],
+      provider: provider.name,
       warnings,
       diarizationTrace: undefined
     }
@@ -215,14 +246,11 @@ export async function transcribeAndDiarizeAudio(input: TranscribeInput): Promise
   warnings.push(...guarded.warnings)
 
   const inferredStartFromClock =
-    typeof input.sessionElapsedMs === "number"
-      ? Math.max(0, input.sessionElapsedMs - (input.chunkDurationMs ?? 0))
-      : 0
+    typeof input.sessionElapsedMs === "number" ? Math.max(0, input.sessionElapsedMs - (input.chunkDurationMs ?? 0)) : 0
   const baseStartMs = Math.max(0, input.lastKnownEndMs, inferredStartFromClock)
   const durationFromSegments = 0
   const durationMs =
-    input.chunkDurationMs ??
-    (durationFromSegments > 0 ? durationFromSegments : approximateDurationMs(transcriptText))
+    input.chunkDurationMs ?? (durationFromSegments > 0 ? durationFromSegments : approximateDurationMs(transcriptText))
   const segments = allocateTimings(guarded.output, {
     baseStartMs,
     durationMs
@@ -231,7 +259,7 @@ export async function transcribeAndDiarizeAudio(input: TranscribeInput): Promise
   return {
     transcriptText,
     segments,
-    provider,
+    provider: provider.name,
     warnings,
     diarizationTrace: diarized.trace
   }

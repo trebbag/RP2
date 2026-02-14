@@ -112,11 +112,7 @@ export function ProgressIndicator({ steps, currentStep, onStepClick }: ProgressI
                     >
                       <div
                         className={`text-sm font-medium transition-colors duration-300 whitespace-nowrap ${
-                          isCompleted
-                            ? "text-emerald-600"
-                            : isCurrent
-                              ? "text-blue-600"
-                              : "text-slate-600"
+                          isCompleted ? "text-emerald-600" : isCurrent ? "text-blue-600" : "text-slate-600"
                         }`}
                       >
                         {step.title}
@@ -134,10 +130,7 @@ export function ProgressIndicator({ steps, currentStep, onStepClick }: ProgressI
                     className="h-full bg-gradient-to-r from-blue-400/90 to-indigo-500/90 rounded-full relative overflow-hidden"
                     initial={{ width: "0%" }}
                     animate={{
-                      width:
-                        currentStep === 1
-                          ? "0%"
-                          : `${((currentStep - 1) / (steps.length - 1)) * 100}%`
+                      width: currentStep === 1 ? "0%" : `${((currentStep - 1) / (steps.length - 1)) * 100}%`
                     }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                   >

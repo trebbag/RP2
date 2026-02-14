@@ -1,10 +1,10 @@
 import { useState } from "react"
 import { motion } from "motion/react"
-import { 
-  FileText, 
-  Stethoscope, 
-  Bell, 
-  Settings, 
+import {
+  FileText,
+  Stethoscope,
+  Bell,
+  Settings,
   ChevronRight,
   Calendar,
   Clock,
@@ -44,14 +44,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collap
 
 export function FigmaComponentLibrary() {
   const [selectedTab, setSelectedTab] = useState("style-guide")
-  const [buttonStates, setButtonStates] = useState<{[key: string]: 'default' | 'hover' | 'active' | 'disabled'}>({
-    primary: 'default',
-    secondary: 'default',
-    ghost: 'default'
+  const [buttonStates, setButtonStates] = useState<{ [key: string]: "default" | "hover" | "active" | "disabled" }>({
+    primary: "default",
+    secondary: "default",
+    ghost: "default"
   })
-  const [inputStates, setInputStates] = useState<{[key: string]: 'default' | 'error' | 'focus'}>({
-    textField: 'default',
-    dropdown: 'default'
+  const [inputStates, setInputStates] = useState<{ [key: string]: "default" | "error" | "focus" }>({
+    textField: "default",
+    dropdown: "default"
   })
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(true)
   const [isDictationActive, setIsDictationActive] = useState(false)
@@ -64,7 +64,7 @@ export function FigmaComponentLibrary() {
       usage: "Main brand color, primary actions"
     },
     secondary: {
-      name: "Secondary", 
+      name: "Secondary",
       value: "#ececf0",
       usage: "Supporting elements, subtle backgrounds"
     },
@@ -78,7 +78,7 @@ export function FigmaComponentLibrary() {
     },
     error: {
       name: "Error",
-      value: "#d4183d", 
+      value: "#d4183d",
       usage: "Error states, destructive actions"
     },
     highlight: {
@@ -105,31 +105,33 @@ export function FigmaComponentLibrary() {
   ]
 
   // Component Examples
-  const ButtonExample = ({ variant, state, size = "default" }: { variant: string, state: string, size?: string }) => {
-    const isDisabled = state === 'disabled'
-    const isHover = state === 'hover'
-    
+  const ButtonExample = ({ variant, state, size = "default" }: { variant: string; state: string; size?: string }) => {
+    const isDisabled = state === "disabled"
+    const isHover = state === "hover"
+
     return (
-      <Button 
+      <Button
         variant={variant as any}
         size={size as any}
         disabled={isDisabled}
-        className={`${isHover ? 'opacity-90' : ''} transition-all`}
+        className={`${isHover ? "opacity-90" : ""} transition-all`}
       >
-        {variant === 'ghost' ? <Settings className="w-4 h-4 mr-2" /> : null}
+        {variant === "ghost" ? <Settings className="w-4 h-4 mr-2" /> : null}
         {variant.charAt(0).toUpperCase() + variant.slice(1)} Button
       </Button>
     )
   }
 
-  const InputExample = ({ type, state }: { type: string, state: string }) => {
-    const isError = state === 'error'
-    const isFocus = state === 'focus'
-    
-    if (type === 'dropdown') {
+  const InputExample = ({ type, state }: { type: string; state: string }) => {
+    const isError = state === "error"
+    const isFocus = state === "focus"
+
+    if (type === "dropdown") {
       return (
         <Select>
-          <SelectTrigger className={`${isError ? 'border-destructive' : ''} ${isFocus ? 'border-ring ring-2 ring-ring/50' : ''}`}>
+          <SelectTrigger
+            className={`${isError ? "border-destructive" : ""} ${isFocus ? "border-ring ring-2 ring-ring/50" : ""}`}
+          >
             <SelectValue placeholder="Select template..." />
           </SelectTrigger>
           <SelectContent>
@@ -140,16 +142,16 @@ export function FigmaComponentLibrary() {
         </Select>
       )
     }
-    
+
     return (
-      <Input 
+      <Input
         placeholder="Enter patient ID..."
-        className={`${isError ? 'border-destructive ring-destructive/20' : ''} ${isFocus ? 'border-ring ring-2 ring-ring/50' : ''}`}
+        className={`${isError ? "border-destructive ring-destructive/20" : ""} ${isFocus ? "border-ring ring-2 ring-ring/50" : ""}`}
       />
     )
   }
 
-  const IconExample = ({ name, icon: Icon, category }: { name: string, icon: any, category: string }) => (
+  const IconExample = ({ name, icon: Icon, category }: { name: string; icon: any; category: string }) => (
     <div className="flex flex-col items-center p-3 border rounded-lg space-y-2">
       <Icon className="w-6 h-6" />
       <div className="text-center">
@@ -199,7 +201,7 @@ export function FigmaComponentLibrary() {
     <Collapsible open={isOpen}>
       <CollapsibleTrigger className="flex items-center justify-between w-full p-3 border rounded-lg hover:bg-accent">
         <span className="font-medium">Assessment & Plan</span>
-        <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? "rotate-90" : ""}`} />
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
         <div className="p-4 border rounded-lg bg-muted/50">
@@ -293,7 +295,7 @@ export function FigmaComponentLibrary() {
                     <div className="min-w-[100px]">
                       <div className="text-sm font-medium">{type.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {type.size} · {type.weight === '500' ? 'Medium' : 'Normal'}
+                        {type.size} · {type.weight === "500" ? "Medium" : "Normal"}
                       </div>
                     </div>
                     <div className="flex-1">
@@ -301,9 +303,7 @@ export function FigmaComponentLibrary() {
                         The quick brown fox jumps over the lazy dog
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground min-w-[120px]">
-                      {type.usage}
-                    </div>
+                    <div className="text-xs text-muted-foreground min-w-[120px]">{type.usage}</div>
                   </div>
                 ))}
               </div>
@@ -325,7 +325,10 @@ export function FigmaComponentLibrary() {
 
                 {/* Secondary */}
                 <div className="space-y-3">
-                  <div className="w-full h-16 rounded-lg border" style={{ backgroundColor: colorPalette.secondary.value }}></div>
+                  <div
+                    className="w-full h-16 rounded-lg border"
+                    style={{ backgroundColor: colorPalette.secondary.value }}
+                  ></div>
                   <div>
                     <div className="font-medium">{colorPalette.secondary.name}</div>
                     <div className="text-sm text-muted-foreground">{colorPalette.secondary.value}</div>
@@ -345,7 +348,10 @@ export function FigmaComponentLibrary() {
 
                 {/* Text Primary */}
                 <div className="space-y-3">
-                  <div className="w-full h-16 rounded-lg border" style={{ backgroundColor: colorPalette.text.primary.value }}></div>
+                  <div
+                    className="w-full h-16 rounded-lg border"
+                    style={{ backgroundColor: colorPalette.text.primary.value }}
+                  ></div>
                   <div>
                     <div className="font-medium">{colorPalette.text.primary.name}</div>
                     <div className="text-sm text-muted-foreground">{colorPalette.text.primary.value}</div>
@@ -355,7 +361,10 @@ export function FigmaComponentLibrary() {
 
                 {/* Text Secondary */}
                 <div className="space-y-3">
-                  <div className="w-full h-16 rounded-lg border" style={{ backgroundColor: colorPalette.text.secondary.value }}></div>
+                  <div
+                    className="w-full h-16 rounded-lg border"
+                    style={{ backgroundColor: colorPalette.text.secondary.value }}
+                  ></div>
                   <div>
                     <div className="font-medium">{colorPalette.text.secondary.name}</div>
                     <div className="text-sm text-muted-foreground">{colorPalette.text.secondary.value}</div>
@@ -365,7 +374,10 @@ export function FigmaComponentLibrary() {
 
                 {/* Highlight */}
                 <div className="space-y-3">
-                  <div className="w-full h-16 rounded-lg border" style={{ backgroundColor: colorPalette.highlight.value }}></div>
+                  <div
+                    className="w-full h-16 rounded-lg border"
+                    style={{ backgroundColor: colorPalette.highlight.value }}
+                  ></div>
                   <div>
                     <div className="font-medium">{colorPalette.highlight.name}</div>
                     <div className="text-sm text-muted-foreground">{colorPalette.highlight.value}</div>
@@ -382,10 +394,7 @@ export function FigmaComponentLibrary() {
                 {spacingTokens.map((token) => (
                   <div key={token.name} className="flex items-center gap-6 p-4 border rounded-lg">
                     <div className="min-w-[60px] font-medium">{token.name}</div>
-                    <div 
-                      className="bg-primary h-4 rounded"
-                      style={{ width: token.value }}
-                    ></div>
+                    <div className="bg-primary h-4 rounded" style={{ width: token.value }}></div>
                     <div className="text-sm text-muted-foreground">{token.usage}</div>
                   </div>
                 ))}
@@ -526,7 +535,9 @@ export function FigmaComponentLibrary() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Checkbox id="disabled" disabled />
-                      <Label htmlFor="disabled" className="text-muted-foreground">Disabled</Label>
+                      <Label htmlFor="disabled" className="text-muted-foreground">
+                        Disabled
+                      </Label>
                     </div>
                   </div>
                 </div>
@@ -673,9 +684,7 @@ export function FigmaComponentLibrary() {
             <section>
               <h2 className="text-xl font-medium mb-6">Pattern / Editor / Smart Phrase Dropdown</h2>
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Contextual dropdown with medical phrase suggestions
-                </p>
+                <p className="text-sm text-muted-foreground">Contextual dropdown with medical phrase suggestions</p>
                 <SmartPhraseDropdown />
               </div>
             </section>
@@ -704,9 +713,7 @@ export function FigmaComponentLibrary() {
             <section>
               <h2 className="text-xl font-medium mb-6">Pattern / Vitals Table / Compact</h2>
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Compact display of patient vital signs
-                </p>
+                <p className="text-sm text-muted-foreground">Compact display of patient vital signs</p>
                 <VitalsTable />
               </div>
             </section>

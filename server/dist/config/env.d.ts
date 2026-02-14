@@ -3,6 +3,7 @@ export declare const env: {
     SESSION_TTL_HOURS: number;
     REFRESH_TOKEN_TTL_HOURS: number;
     MFA_REQUIRED: boolean;
+    AUTH_MODE: "local" | "oidc";
     NODE_ENV: "development" | "test" | "production";
     PORT: number;
     DATABASE_URL: string;
@@ -11,8 +12,10 @@ export declare const env: {
     STORAGE_DIR: string;
     OPENAI_MODEL: string;
     OPENAI_STT_MODEL: string;
+    TRANSCRIPTION_PROVIDER: "openai" | "offlineMock";
     DIARIZATION_SPEAKERS: string;
     AUDIT_RETENTION_DAYS: number;
+    TRANSCRIPT_RETENTION_DAYS: number;
     DISPATCH_TARGET: "NONE" | "FHIR_R4" | "HL7_V2" | "VENDOR_API";
     DISPATCH_VENDOR: "GENERIC" | "ATHENAHEALTH" | "NEXTGEN" | "ECLINICALWORKS";
     DISPATCH_AUTH_MODE: "NONE" | "API_KEY" | "BEARER" | "HMAC";
@@ -38,6 +41,10 @@ export declare const env: {
     AI_TRANSCRIPT_CORRECTION_ALERT_MIN_SEGMENTS: number;
     AI_COMPLIANCE_FALSE_POSITIVE_ALERT_THRESHOLD: number;
     AI_COMPLIANCE_FALSE_POSITIVE_ALERT_MIN_REVIEWED: number;
+    OIDC_ISSUER_URL?: string;
+    OIDC_CLIENT_ID?: string;
+    OIDC_CLIENT_SECRET?: string;
+    OIDC_REDIRECT_URI?: string;
     OPENAI_API_KEY?: string;
     BILLING_SCHEDULES_PATH?: string;
     DISPATCH_WEBHOOK_URL?: string;

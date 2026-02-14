@@ -7,8 +7,9 @@ export const exportRoutes = Router();
 exportRoutes.use(requireRole(["ADMIN", "MA", "CLINICIAN"]));
 exportRoutes.get("/:artifactId", async (req, res, next) => {
     try {
-        const artifact = await prisma.exportArtifact.findUnique({
-            where: { id: req.params.artifactId }
+        const authReq = req;
+        const artifact = await prisma.exportArtifact.findFirst({
+            where: { id: req.params.artifactId, orgId: authReq.user.orgId }
         });
         if (!artifact) {
             throw new ApiError(404, "Export artifact not found");

@@ -5,7 +5,7 @@
 RP2 enforces a strict server-side PHI boundary for all model calls.
 
 - Raw PHI must not cross from RP2 business logic into any external AI model provider.
-- All model traffic must go through `server/src/ai/aiGateway.ts`.
+- All LLM/orchestration traffic must go through `server/src/ai/aiGateway.ts`.
 - AI payloads must be de-identified DTOs and pass runtime PHI checks.
 
 ## Allowed vs Forbidden
@@ -43,6 +43,21 @@ PHI-like patterns are also rejected:
 - emails
 - US phone numbers
 - SSN-like values
+
+## Transcription Note
+
+Audio transcription is implemented behind a pluggable provider interface (`TRANSCRIPTION_PROVIDER`).
+
+- The transcription provider may call an external STT service depending on environment policy.
+- Transcript _text_ is always treated as PHI and must be de-identified before being included in any LLM task payloads.
+
+## Chart Note
+
+Chart uploads are PHI.
+
+- `ChartAsset.rawText` (extracted chart text) must never be sent to external model providers.
+- AI tasks may use only structured chart facts (`ChartAsset.extractedJson`) as `chartFacts` after de-identification/guardrails.
+- Avoid placing identifying metadata (e.g. uploaded file names) into `chartFacts` since name-like strings are not reliably detected by pattern-based PHI guards.
 
 ## How To Add A New AI Task Safely
 

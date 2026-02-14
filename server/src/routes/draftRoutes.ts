@@ -2,6 +2,7 @@ import { Router } from "express"
 import { ApiError } from "../middleware/errorHandler.js"
 import { prisma } from "../lib/prisma.js"
 import { requireRole } from "../middleware/auth.js"
+import type { AuthenticatedRequest } from "../types.js"
 
 function toVisitType(appointmentType: string): "SOAP" | "Wellness" | "Follow-up" | "Consultation" {
   if (appointmentType === "Wellness") return "Wellness"
@@ -13,9 +14,11 @@ function toVisitType(appointmentType: string): "SOAP" | "Wellness" | "Follow-up"
 export const draftRoutes = Router()
 draftRoutes.use(requireRole(["ADMIN", "MA", "CLINICIAN"]))
 
-draftRoutes.get("/", async (_req, res, next) => {
+draftRoutes.get("/", async (req, res, next) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest
     const notes = await prisma.note.findMany({
+      where: { orgId: authReq.user.orgId },
       include: {
         encounter: {
           include: {
@@ -72,8 +75,10 @@ draftRoutes.get("/", async (_req, res, next) => {
 
 draftRoutes.get("/:draftId", async (req, res, next) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest
     const draft = await prisma.note.findFirst({
       where: {
+        orgId: authReq.user.orgId,
         OR: [{ id: req.params.draftId }]
       },
       include: {

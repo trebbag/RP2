@@ -6,7 +6,16 @@ import { Checkbox } from "./ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible"
 import { ScrollArea } from "./ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "./ui/alert-dialog"
 import {
   X,
   ChevronDown,
@@ -92,7 +101,7 @@ export function SuggestionPanel({
   const lastRefreshNoteRef = useRef("")
 
   const toggleCard = (cardKey: string) => {
-    setExpandedCards(prev => ({
+    setExpandedCards((prev) => ({
       ...prev,
       [cardKey]: !prev[cardKey]
     }))
@@ -235,7 +244,8 @@ export function SuggestionPanel({
         description: "Office visit, established patient",
         rationale: "Based on complexity and time spent",
         confidence: 82,
-        whatItIs: "Evaluation and Management (E/M) service for an established patient office or other outpatient visit requiring a medically appropriate history and/or examination and low level of medical decision making.",
+        whatItIs:
+          "Evaluation and Management (E/M) service for an established patient office or other outpatient visit requiring a medically appropriate history and/or examination and low level of medical decision making.",
         usageRules: [
           "Patient must be established (seen within past 3 years by same physician or same specialty group)",
           "Requires medically appropriate history and/or examination",
@@ -260,7 +270,8 @@ export function SuggestionPanel({
         description: "Office visit, established patient (moderate complexity)",
         rationale: "Higher complexity visit with moderate medical decision making",
         confidence: 67,
-        whatItIs: "Evaluation and Management (E/M) service for an established patient office visit requiring a medically appropriate history and/or examination and moderate level of medical decision making.",
+        whatItIs:
+          "Evaluation and Management (E/M) service for an established patient office visit requiring a medically appropriate history and/or examination and moderate level of medical decision making.",
         usageRules: [
           "Patient must be established (seen within past 3 years)",
           "Requires medically appropriate history and/or examination",
@@ -285,7 +296,8 @@ export function SuggestionPanel({
         description: "Preventive medicine, established patient (18-39 years)",
         rationale: "Patient age and visit type match preventive care criteria",
         confidence: 91,
-        whatItIs: "Periodic comprehensive preventive medicine reevaluation and management of an individual including an age and gender appropriate history, examination, counseling/anticipatory guidance/risk factor reduction interventions, and the ordering of laboratory/diagnostic procedures, established patient; 18-39 years.",
+        whatItIs:
+          "Periodic comprehensive preventive medicine reevaluation and management of an individual including an age and gender appropriate history, examination, counseling/anticipatory guidance/risk factor reduction interventions, and the ordering of laboratory/diagnostic procedures, established patient; 18-39 years.",
         usageRules: [
           "Patient must be established and asymptomatic",
           "Must be comprehensive preventive service, not problem-focused",
@@ -316,11 +328,15 @@ export function SuggestionPanel({
         reason: "Patient is due for annual flu vaccine - flu season approaching",
         source: "CDC",
         level: "Level A",
-        importance: "Prevents seasonal influenza which causes 140,000-810,000 hospitalizations and 12,000-61,000 deaths annually in the US. Vaccination reduces risk by 40-60% when vaccine is well-matched to circulating viruses.",
-        whatToDo: "Administer age-appropriate influenza vaccine (IIV4 or LAIV4). Document vaccine lot number, expiration date, administration site, and VIS date. Schedule follow-up if any adverse reactions occur.",
-        patientFlagged: "Patient is 34 years old with no documented flu vaccine in the past 12 months. Has history of seasonal allergies which may increase complications from influenza infection.",
+        importance:
+          "Prevents seasonal influenza which causes 140,000-810,000 hospitalizations and 12,000-61,000 deaths annually in the US. Vaccination reduces risk by 40-60% when vaccine is well-matched to circulating viruses.",
+        whatToDo:
+          "Administer age-appropriate influenza vaccine (IIV4 or LAIV4). Document vaccine lot number, expiration date, administration site, and VIS date. Schedule follow-up if any adverse reactions occur.",
+        patientFlagged:
+          "Patient is 34 years old with no documented flu vaccine in the past 12 months. Has history of seasonal allergies which may increase complications from influenza infection.",
         recommendingBody: "CDC Advisory Committee on Immunization Practices (ACIP)",
-        guidelines: "Annual vaccination recommended for all persons ≥6 months without contraindications. Preferentially recommend IIV4 for adults ≥65 years. Give by October 31st for optimal protection.",
+        guidelines:
+          "Annual vaccination recommended for all persons ≥6 months without contraindications. Preferentially recommend IIV4 for adults ≥65 years. Give by October 31st for optimal protection.",
         patientPercentage: 78,
         clinicAverage: 85,
         usAverage: 63,
@@ -336,11 +352,15 @@ export function SuggestionPanel({
         reason: "Patient eligible for updated COVID-19 vaccine based on age and time since last dose",
         source: "CDC",
         level: "Level B",
-        importance: "Updated COVID-19 vaccines target currently circulating variants and help restore waning immunity. Reduces risk of hospitalization by 50-80% and severe disease by 70-90% in the months following vaccination.",
-        whatToDo: "Administer updated 2024-2025 COVID-19 vaccine (mRNA or protein subunit). Can be given simultaneously with other vaccines. Monitor for 15 minutes post-vaccination for immediate adverse reactions.",
-        patientFlagged: "Patient received last COVID-19 vaccine >4 months ago. Age 34 puts them in recommended group for annual vaccination. No known contraindications to mRNA vaccines.",
+        importance:
+          "Updated COVID-19 vaccines target currently circulating variants and help restore waning immunity. Reduces risk of hospitalization by 50-80% and severe disease by 70-90% in the months following vaccination.",
+        whatToDo:
+          "Administer updated 2024-2025 COVID-19 vaccine (mRNA or protein subunit). Can be given simultaneously with other vaccines. Monitor for 15 minutes post-vaccination for immediate adverse reactions.",
+        patientFlagged:
+          "Patient received last COVID-19 vaccine >4 months ago. Age 34 puts them in recommended group for annual vaccination. No known contraindications to mRNA vaccines.",
         recommendingBody: "CDC Advisory Committee on Immunization Practices (ACIP) and FDA",
-        guidelines: "Updated 2024-2025 COVID-19 vaccine recommended annually for persons ≥6 months. Can be given ≥2 months after previous COVID-19 vaccine. No minimum interval with other vaccines.",
+        guidelines:
+          "Updated 2024-2025 COVID-19 vaccine recommended annually for persons ≥6 months. Can be given ≥2 months after previous COVID-19 vaccine. No minimum interval with other vaccines.",
         patientPercentage: 52,
         clinicAverage: 71,
         usAverage: 45,
@@ -356,14 +376,33 @@ export function SuggestionPanel({
         reasoning: "Most common cause of URI symptoms, seasonal pattern, gradual onset",
         supportingFactors: ["Gradual onset", "Clear rhinorrhea", "Low-grade fever", "Seasonal timing"],
         contradictingFactors: ["No purulent discharge", "No high fever"],
-        whatItIs: "A viral infection affecting the upper respiratory tract including nose, throat, and sinuses, typically self-limiting and lasting 7-10 days.",
-        details: "Most commonly caused by rhinoviruses, coronaviruses, or adenoviruses. Presents with nasal congestion, rhinorrhea, sore throat, and mild systemic symptoms.",
-        forFactors: ["Seasonal pattern matches viral epidemiology", "Gradual onset typical of viral infections", "Low-grade fever supports viral etiology", "Clear discharge suggests viral rather than bacterial"],
-        againstFactors: ["Symptom duration >10 days might suggest bacterial superinfection", "Lack of myalgias somewhat atypical"],
-        confidenceFactors: "High confidence based on symptom pattern, seasonal timing, physical exam findings, and epidemiological factors. Viral URI accounts for 90% of acute respiratory infections.",
+        whatItIs:
+          "A viral infection affecting the upper respiratory tract including nose, throat, and sinuses, typically self-limiting and lasting 7-10 days.",
+        details:
+          "Most commonly caused by rhinoviruses, coronaviruses, or adenoviruses. Presents with nasal congestion, rhinorrhea, sore throat, and mild systemic symptoms.",
+        forFactors: [
+          "Seasonal pattern matches viral epidemiology",
+          "Gradual onset typical of viral infections",
+          "Low-grade fever supports viral etiology",
+          "Clear discharge suggests viral rather than bacterial"
+        ],
+        againstFactors: [
+          "Symptom duration >10 days might suggest bacterial superinfection",
+          "Lack of myalgias somewhat atypical"
+        ],
+        confidenceFactors:
+          "High confidence based on symptom pattern, seasonal timing, physical exam findings, and epidemiological factors. Viral URI accounts for 90% of acute respiratory infections.",
         learnMoreUrl: "https://www.aafp.org/pubs/afp/issues/2012/0101/p46.html",
-        testsToConfirm: ["Usually clinical diagnosis", "Rapid viral panel if high-risk patient", "CBC if bacterial superinfection suspected"],
-        testsToExclude: ["Throat culture to rule out strep", "Sinus CT if sinusitis suspected", "Chest X-ray if pneumonia concern"]
+        testsToConfirm: [
+          "Usually clinical diagnosis",
+          "Rapid viral panel if high-risk patient",
+          "CBC if bacterial superinfection suspected"
+        ],
+        testsToExclude: [
+          "Throat culture to rule out strep",
+          "Sinus CT if sinusitis suspected",
+          "Chest X-ray if pneumonia concern"
+        ]
       },
       {
         diagnosis: "Acute bacterial sinusitis",
@@ -373,13 +412,28 @@ export function SuggestionPanel({
         reasoning: "Possible secondary bacterial infection, symptoms lasting >10 days",
         supportingFactors: ["Facial pressure", "Discolored discharge", "Symptom duration"],
         contradictingFactors: ["No high fever", "No severe facial pain"],
-        whatItIs: "Bacterial infection of the paranasal sinuses, typically following a viral upper respiratory infection, characterized by purulent nasal discharge and facial pain.",
-        details: "Usually caused by S. pneumoniae, H. influenzae, or M. catarrhalis. Requires specific criteria: symptoms >10 days, severe symptoms, or worsening after improvement.",
-        forFactors: ["Symptom duration >7 days supports bacterial etiology", "Facial pressure classic for sinusitis", "Discolored discharge suggests bacterial infection"],
-        againstFactors: ["Absence of high fever reduces likelihood", "No severe facial pain", "Gradual onset less typical for bacterial"],
-        confidenceFactors: "Moderate confidence. Bacterial sinusitis only occurs in 0.5-2% of viral URI cases. Current symptoms don't fully meet IDSA criteria for bacterial sinusitis.",
+        whatItIs:
+          "Bacterial infection of the paranasal sinuses, typically following a viral upper respiratory infection, characterized by purulent nasal discharge and facial pain.",
+        details:
+          "Usually caused by S. pneumoniae, H. influenzae, or M. catarrhalis. Requires specific criteria: symptoms >10 days, severe symptoms, or worsening after improvement.",
+        forFactors: [
+          "Symptom duration >7 days supports bacterial etiology",
+          "Facial pressure classic for sinusitis",
+          "Discolored discharge suggests bacterial infection"
+        ],
+        againstFactors: [
+          "Absence of high fever reduces likelihood",
+          "No severe facial pain",
+          "Gradual onset less typical for bacterial"
+        ],
+        confidenceFactors:
+          "Moderate confidence. Bacterial sinusitis only occurs in 0.5-2% of viral URI cases. Current symptoms don't fully meet IDSA criteria for bacterial sinusitis.",
         learnMoreUrl: "https://academic.oup.com/cid/article/54/8/e72/367144",
-        testsToConfirm: ["Clinical diagnosis preferred", "Sinus CT if recurrent/chronic", "Nasal endoscopy if specialist referral"],
+        testsToConfirm: [
+          "Clinical diagnosis preferred",
+          "Sinus CT if recurrent/chronic",
+          "Nasal endoscopy if specialist referral"
+        ],
         testsToExclude: ["Routine sinus X-rays not recommended", "MRI only if intracranial complications suspected"]
       },
       {
@@ -390,14 +444,34 @@ export function SuggestionPanel({
         reasoning: "Chronic symptoms with environmental triggers, but acute presentation less likely",
         supportingFactors: ["Clear discharge", "Nasal congestion", "Seasonal component"],
         contradictingFactors: ["Acute onset", "Fever present", "No known allergies"],
-        whatItIs: "An inflammatory condition of the nasal mucosa caused by IgE-mediated reaction to environmental allergens, typically seasonal or perennial.",
-        details: "Characterized by sneezing, clear rhinorrhea, nasal congestion, and itching. May be seasonal (pollen) or perennial (dust mites, pet dander).",
-        forFactors: ["Clear rhinorrhea typical of allergic response", "Nasal congestion common symptom", "Seasonal timing could suggest environmental trigger"],
-        againstFactors: ["Acute onset unusual for allergic rhinitis", "Fever not typical of allergic reaction", "No documented allergy history", "Lack of typical allergic symptoms (itching, sneezing)"],
-        confidenceFactors: "Low confidence. Acute onset with fever makes allergic rhinitis unlikely. Patient would typically have history of allergies and seasonal pattern.",
+        whatItIs:
+          "An inflammatory condition of the nasal mucosa caused by IgE-mediated reaction to environmental allergens, typically seasonal or perennial.",
+        details:
+          "Characterized by sneezing, clear rhinorrhea, nasal congestion, and itching. May be seasonal (pollen) or perennial (dust mites, pet dander).",
+        forFactors: [
+          "Clear rhinorrhea typical of allergic response",
+          "Nasal congestion common symptom",
+          "Seasonal timing could suggest environmental trigger"
+        ],
+        againstFactors: [
+          "Acute onset unusual for allergic rhinitis",
+          "Fever not typical of allergic reaction",
+          "No documented allergy history",
+          "Lack of typical allergic symptoms (itching, sneezing)"
+        ],
+        confidenceFactors:
+          "Low confidence. Acute onset with fever makes allergic rhinitis unlikely. Patient would typically have history of allergies and seasonal pattern.",
         learnMoreUrl: "https://www.aaaai.org/tools-for-the-public/conditions-library/allergies/rhinitis",
-        testsToConfirm: ["Skin prick tests for specific allergens", "Serum specific IgE levels", "Total IgE if indicated"],
-        testsToExclude: ["CBC with eosinophil count", "Nasal smear for eosinophils", "CT scan to rule out structural abnormalities"]
+        testsToConfirm: [
+          "Skin prick tests for specific allergens",
+          "Serum specific IgE levels",
+          "Total IgE if indicated"
+        ],
+        testsToExclude: [
+          "CBC with eosinophil count",
+          "Nasal smear for eosinophils",
+          "CT scan to rule out structural abnormalities"
+        ]
       }
     ],
     followUp: [
@@ -435,7 +509,8 @@ export function SuggestionPanel({
           "Validate this suggestion against encounter details before final coding.",
           "Ensure note evidence supports code specificity."
         ],
-        reasonsSuggested: item.evidence && item.evidence.length > 0 ? item.evidence : ["Derived from chart/note/transcript context"],
+        reasonsSuggested:
+          item.evidence && item.evidence.length > 0 ? item.evidence : ["Derived from chart/note/transcript context"],
         potentialConcerns: [
           "Confirm coding specificity for payer requirements.",
           "Remove if unsupported by documentation."
@@ -524,21 +599,22 @@ export function SuggestionPanel({
       key: "codes",
       title: "Codes",
       icon: Code,
-      count: suggestions.codes.filter(code => !addedCodes.includes(code.code)).length,
+      count: suggestions.codes.filter((code) => !addedCodes.includes(code.code)).length,
       color: "text-blue-600"
     },
     {
       key: "prevention",
       title: "Prevention",
       icon: Heart,
-      count: suggestions.publicHealth.filter(item => !addedCodes.includes(item.code || item.id)).length,
+      count: suggestions.publicHealth.filter((item) => !addedCodes.includes(item.code || item.id)).length,
       color: "text-red-600"
     },
     {
       key: "differentials",
       title: "Differentials",
       icon: Stethoscope,
-      count: suggestions.differentials.filter(differential => !addedCodes.includes(differential.icdCode || "")).length,
+      count: suggestions.differentials.filter((differential) => !addedCodes.includes(differential.icdCode || ""))
+        .length,
       color: "text-purple-600"
     },
     {
@@ -564,19 +640,8 @@ export function SuggestionPanel({
 
     return (
       <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          className="transform -rotate-90"
-        >
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#e5e7eb"
-            strokeWidth="2"
-            fill="none"
-          />
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} stroke="#e5e7eb" strokeWidth="2" fill="none" />
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -591,9 +656,7 @@ export function SuggestionPanel({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-medium text-muted-foreground">
-            {confidence}
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">{confidence}</span>
         </div>
       </div>
     )
@@ -629,9 +692,7 @@ export function SuggestionPanel({
                 Pilot mode is backend-only. Suggestions will load when backend connectivity is restored.
               </p>
             )}
-            {suggestionError && (
-              <p className="text-[10px] text-red-600">{suggestionError}</p>
-            )}
+            {suggestionError && <p className="text-[10px] text-red-600">{suggestionError}</p>}
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -642,7 +703,7 @@ export function SuggestionPanel({
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
-              {cardConfigs.map(config => (
+              {cardConfigs.map((config) => (
                 <Card key={config.key} className="overflow-hidden">
                   <Collapsible
                     open={expandedCards[config.key as keyof typeof expandedCards]}
@@ -673,7 +734,7 @@ export function SuggestionPanel({
                         {config.key === "codes" && (
                           <div className="space-y-3">
                             {suggestions.codes
-                              .filter(code => !addedCodes.includes(code.code))
+                              .filter((code) => !addedCodes.includes(code.code))
                               .map((code, index) => {
                                 const codeTypeColors: Record<string, string> = {
                                   CPT: "bg-blue-50 border-blue-200 text-blue-700",
@@ -689,7 +750,7 @@ export function SuggestionPanel({
                                             size="sm"
                                             variant="ghost"
                                             className="h-8 w-8 p-0 flex items-center justify-center hover:bg-blue-100 hover:text-blue-700 flex-shrink-0"
-                                            onClick={event => {
+                                            onClick={(event) => {
                                               event.stopPropagation()
                                               handleAddCode(code)
                                             }}
@@ -714,12 +775,8 @@ export function SuggestionPanel({
                                             </div>
 
                                             <div>
-                                              <p className="text-sm font-medium text-foreground">
-                                                {code.description}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground">
-                                                {code.rationale}
-                                              </p>
+                                              <p className="text-sm font-medium text-foreground">{code.description}</p>
+                                              <p className="text-xs text-muted-foreground">{code.rationale}</p>
                                             </div>
                                           </div>
                                         </div>
@@ -731,9 +788,7 @@ export function SuggestionPanel({
                                           <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                               <Code className="h-4 w-4 text-blue-600" />
-                                              <span className="font-medium text-blue-900">
-                                                {code.code}
-                                              </span>
+                                              <span className="font-medium text-blue-900">{code.code}</span>
                                             </div>
                                             <ConfidenceGauge confidence={code.confidence} size={24} />
                                           </div>
@@ -758,7 +813,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1 pl-5">
                                               {code.usageRules.map((rule: string, ruleIndex: number) => (
-                                                <li key={ruleIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={ruleIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-green-600 rounded-full mt-2 flex-shrink-0" />
                                                   {rule}
                                                 </li>
@@ -773,7 +831,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1 pl-5">
                                               {code.reasonsSuggested.map((reason: string, reasonIndex: number) => (
-                                                <li key={reasonIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={reasonIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
                                                   {reason}
                                                 </li>
@@ -788,7 +849,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1 pl-5">
                                               {code.potentialConcerns.map((concern: string, concernIndex: number) => (
-                                                <li key={concernIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={concernIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-amber-600 rounded-full mt-2 flex-shrink-0" />
                                                   {concern}
                                                 </li>
@@ -808,7 +872,7 @@ export function SuggestionPanel({
                         {config.key === "prevention" && (
                           <div className="space-y-3">
                             {suggestions.publicHealth
-                              .filter(item => !addedCodes.includes(item.code || item.id))
+                              .filter((item) => !addedCodes.includes(item.code || item.id))
                               .map((item, index) => (
                                 <Tooltip key={index}>
                                   <TooltipTrigger asChild>
@@ -816,19 +880,22 @@ export function SuggestionPanel({
                                       <div className="flex items-start justify-between gap-3">
                                         <div className="space-y-2 flex-1">
                                           <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700">
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs bg-red-50 border-red-200 text-red-700"
+                                            >
                                               PREVENTION
                                             </Badge>
                                             <span className="font-mono text-xs text-muted-foreground">{item.code}</span>
-                                            <Badge variant="secondary" className="text-xs">{item.level}</Badge>
+                                            <Badge variant="secondary" className="text-xs">
+                                              {item.level}
+                                            </Badge>
                                           </div>
                                           <div>
                                             <p className="text-sm font-medium text-foreground">{item.text}</p>
                                             <p className="text-xs text-muted-foreground">{item.description}</p>
                                           </div>
-                                          <div className="text-xs text-muted-foreground">
-                                            {item.reason}
-                                          </div>
+                                          <div className="text-xs text-muted-foreground">{item.reason}</div>
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
                                           <ConfidenceGauge confidence={item.confidence} size={22} />
@@ -836,7 +903,7 @@ export function SuggestionPanel({
                                             size="sm"
                                             variant="ghost"
                                             className="h-7 px-2"
-                                            onClick={event => {
+                                            onClick={(event) => {
                                               event.stopPropagation()
                                               handleAddCode(item)
                                             }}
@@ -864,7 +931,10 @@ export function SuggestionPanel({
 
                                       <div className="flex items-center gap-2 mt-3">
                                         <Checkbox id={`discussed-${item.id}`} />
-                                        <label htmlFor={`discussed-${item.id}`} className="text-xs text-muted-foreground">
+                                        <label
+                                          htmlFor={`discussed-${item.id}`}
+                                          className="text-xs text-muted-foreground"
+                                        >
                                           Discussed with patient
                                         </label>
                                       </div>
@@ -880,7 +950,9 @@ export function SuggestionPanel({
                                           </div>
                                           <ConfidenceGauge confidence={item.confidence} size={24} />
                                         </div>
-                                        <p className="text-sm text-red-800 mt-1">{item.code} • {item.source}</p>
+                                        <p className="text-sm text-red-800 mt-1">
+                                          {item.code} • {item.source}
+                                        </p>
                                       </div>
 
                                       <div className="p-4 space-y-4">
@@ -889,7 +961,9 @@ export function SuggestionPanel({
                                             <Shield className="h-3 w-3 text-red-600" />
                                             <h5 className="font-medium text-sm text-red-700">Why It Matters</h5>
                                           </div>
-                                          <p className="text-xs text-gray-700 leading-relaxed pl-5">{item.importance}</p>
+                                          <p className="text-xs text-gray-700 leading-relaxed pl-5">
+                                            {item.importance}
+                                          </p>
                                         </div>
 
                                         <div className="border-t border-gray-100 pt-4">
@@ -905,7 +979,9 @@ export function SuggestionPanel({
                                             <AlertTriangle className="h-3 w-3 text-amber-600" />
                                             <h5 className="font-medium text-sm text-amber-700">Patient Flag</h5>
                                           </div>
-                                          <p className="text-xs text-gray-700 leading-relaxed pl-5">{item.patientFlagged}</p>
+                                          <p className="text-xs text-gray-700 leading-relaxed pl-5">
+                                            {item.patientFlagged}
+                                          </p>
                                         </div>
 
                                         <div className="border-t border-gray-100 pt-4">
@@ -913,7 +989,9 @@ export function SuggestionPanel({
                                             <TrendingUp className="h-3 w-3 text-blue-600" />
                                             <h5 className="font-medium text-sm text-blue-700">Guidelines</h5>
                                           </div>
-                                          <p className="text-xs text-gray-700 leading-relaxed pl-5">{item.guidelines}</p>
+                                          <p className="text-xs text-gray-700 leading-relaxed pl-5">
+                                            {item.guidelines}
+                                          </p>
                                           <p className="text-xs text-muted-foreground pl-5 mt-2">
                                             Recommending body: {item.recommendingBody}
                                           </p>
@@ -939,19 +1017,22 @@ export function SuggestionPanel({
                                           <p className="text-sm font-medium">{item.diagnosis}</p>
                                           {item.icdCode && (
                                             <div className="flex items-center gap-2 mt-1">
-                                              <Badge variant="outline" className="text-xs bg-purple-50 border-purple-200 text-purple-700">
+                                              <Badge
+                                                variant="outline"
+                                                className="text-xs bg-purple-50 border-purple-200 text-purple-700"
+                                              >
                                                 ICD-10
                                               </Badge>
-                                              <span className="font-mono text-xs text-muted-foreground">{item.icdCode}</span>
+                                              <span className="font-mono text-xs text-muted-foreground">
+                                                {item.icdCode}
+                                              </span>
                                             </div>
                                           )}
                                         </div>
                                         <ConfidenceGauge confidence={item.percentage} size={24} />
                                       </div>
 
-                                      <div className="text-xs text-muted-foreground">
-                                        {item.reasoning}
-                                      </div>
+                                      <div className="text-xs text-muted-foreground">{item.reasoning}</div>
 
                                       <div className="grid grid-cols-1 gap-2 text-xs">
                                         <div>
@@ -968,7 +1049,7 @@ export function SuggestionPanel({
                                         </div>
                                       </div>
 
-                                      <div className="flex gap-1 mt-2" onClick={event => event.stopPropagation()}>
+                                      <div className="flex gap-1 mt-2" onClick={(event) => event.stopPropagation()}>
                                         <Button
                                           size="sm"
                                           variant="ghost"
@@ -1037,7 +1118,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1">
                                               {item.forFactors.map((factor, factorIndex) => (
-                                                <li key={factorIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={factorIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-green-600 rounded-full mt-2 flex-shrink-0"></div>
                                                   {factor}
                                                 </li>
@@ -1052,7 +1136,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1">
                                               {item.againstFactors.map((factor, factorIndex) => (
-                                                <li key={factorIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={factorIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-red-600 rounded-full mt-2 flex-shrink-0"></div>
                                                   {factor}
                                                 </li>
@@ -1068,7 +1155,9 @@ export function SuggestionPanel({
                                           <TestTube className="h-3 w-3 text-purple-600" />
                                           <h5 className="font-medium text-sm text-purple-700">Confidence Assessment</h5>
                                         </div>
-                                        <p className="text-xs text-gray-700 leading-relaxed pl-5">{item.confidenceFactors}</p>
+                                        <p className="text-xs text-gray-700 leading-relaxed pl-5">
+                                          {item.confidenceFactors}
+                                        </p>
                                       </div>
 
                                       {/* Testing - Side by Side */}
@@ -1081,7 +1170,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1">
                                               {item.testsToConfirm.map((test, testIndex) => (
-                                                <li key={testIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={testIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
                                                   {test}
                                                 </li>
@@ -1096,7 +1188,10 @@ export function SuggestionPanel({
                                             </div>
                                             <ul className="space-y-1">
                                               {item.testsToExclude.map((test, testIndex) => (
-                                                <li key={testIndex} className="text-xs text-gray-700 flex items-start gap-2">
+                                                <li
+                                                  key={testIndex}
+                                                  className="text-xs text-gray-700 flex items-start gap-2"
+                                                >
                                                   <div className="w-1 h-1 bg-gray-600 rounded-full mt-2 flex-shrink-0"></div>
                                                   {test}
                                                 </li>
@@ -1113,7 +1208,9 @@ export function SuggestionPanel({
                                           <h5 className="font-medium text-sm text-green-900">Clinical Best Practice</h5>
                                         </div>
                                         <p className="text-xs text-green-800 leading-relaxed">
-                                          Always consider differential diagnoses systematically. Document clinical reasoning for confidence levels below 70% before establishing primary diagnosis.
+                                          Always consider differential diagnoses systematically. Document clinical
+                                          reasoning for confidence levels below 70% before establishing primary
+                                          diagnosis.
                                         </p>
                                       </div>
 
@@ -1182,7 +1279,8 @@ export function SuggestionPanel({
                 Low Confidence Diagnosis Warning
               </AlertDialogTitle>
               <AlertDialogDescription>
-                This diagnosis has a confidence level below 70%. Please review the clinical reasoning before adding it as a primary diagnosis.
+                This diagnosis has a confidence level below 70%. Please review the clinical reasoning before adding it
+                as a primary diagnosis.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
@@ -1243,7 +1341,9 @@ export function SuggestionPanel({
                           </h5>
                           <ul className="space-y-1">
                             {selectedDifferential.testsToConfirm.map((test, index) => (
-                              <li key={index} className="text-xs text-muted-foreground">• {test}</li>
+                              <li key={index} className="text-xs text-muted-foreground">
+                                • {test}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -1255,7 +1355,9 @@ export function SuggestionPanel({
                           </h5>
                           <ul className="space-y-1">
                             {selectedDifferential.testsToExclude.map((test, index) => (
-                              <li key={index} className="text-xs text-muted-foreground">• {test}</li>
+                              <li key={index} className="text-xs text-muted-foreground">
+                                • {test}
+                              </li>
                             ))}
                           </ul>
                         </div>

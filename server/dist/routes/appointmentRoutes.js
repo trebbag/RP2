@@ -6,12 +6,14 @@ import { z } from "zod";
 import { AppointmentPriority, AppointmentStatus, ArtifactType } from "@prisma/client";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
+import { transactional } from "../lib/transactional.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { createExternalAppointmentId, createExternalEncounterId, createExternalPatientId } from "../utils/id.js";
 import { ensureDir } from "../utils/fs.js";
 import { writeAuditLog } from "../middleware/audit.js";
 import { extractStructuredChart, persistStructuredChart } from "../services/chartExtractionService.js";
 import { requireRole } from "../middleware/auth.js";
+import { ensureMembership } from "../services/tenantService.js";
 const appointmentCreateSchema = z.object({
     patientId: z.string().optional(),
     patientName: z.string().min(2),
@@ -47,7 +49,7 @@ function splitName(name) {
     const lastName = tokens.join(" ") || "Unknown";
     return { firstName, lastName };
 }
-async function resolveProvider(providerName, fallbackUserId) {
+async function resolveProvider(orgId, providerName, fallbackUserId) {
     if (!providerName) {
         return fallbackUserId;
     }
@@ -61,11 +63,17 @@ async function resolveProvider(providerName, fallbackUserId) {
             role: "CLINICIAN"
         }
     });
+    await ensureMembership({
+        orgId,
+        userId: user.id,
+        role: "CLINICIAN"
+    });
     return user.id;
 }
-async function resolveAppointment(appointmentId) {
+async function resolveAppointment(orgId, appointmentId) {
     return prisma.appointment.findFirst({
         where: {
+            orgId,
             OR: [{ id: appointmentId }, { externalId: appointmentId }]
         },
         include: {
@@ -109,9 +117,11 @@ function mapAppointmentForClient(record) {
 }
 export const appointmentRoutes = Router();
 appointmentRoutes.use(requireRole(["ADMIN", "MA", "CLINICIAN"]));
-appointmentRoutes.get("/", async (_req, res, next) => {
+appointmentRoutes.get("/", async (req, res, next) => {
     try {
+        const authReq = req;
         const records = await prisma.appointment.findMany({
+            where: { orgId: authReq.user.orgId },
             orderBy: { scheduledAt: "asc" },
             include: {
                 patient: true,
@@ -138,9 +148,14 @@ appointmentRoutes.post("/", async (req, res, next) => {
         const payload = appointmentCreateSchema.parse(req.body);
         const patientNames = splitName(payload.patientName);
         const externalPatientId = payload.patientId ?? createExternalPatientId();
-        const providerId = await resolveProvider(payload.provider, authReq.user.id);
+        const providerId = await resolveProvider(authReq.user.orgId, payload.provider, authReq.user.id);
         const patient = await prisma.patient.upsert({
-            where: { externalId: externalPatientId },
+            where: {
+                orgId_externalId: {
+                    orgId: authReq.user.orgId,
+                    externalId: externalPatientId
+                }
+            },
             update: {
                 firstName: patientNames.firstName,
                 lastName: patientNames.lastName,
@@ -148,6 +163,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
                 email: payload.patientEmail
             },
             create: {
+                orgId: authReq.user.orgId,
                 externalId: externalPatientId,
                 firstName: patientNames.firstName,
                 lastName: patientNames.lastName,
@@ -155,9 +171,10 @@ appointmentRoutes.post("/", async (req, res, next) => {
                 email: payload.patientEmail
             }
         });
-        const created = await prisma.$transaction(async (tx) => {
+        const created = await transactional(async (tx) => {
             const appointment = await tx.appointment.create({
                 data: {
+                    orgId: authReq.user.orgId,
                     externalId: createExternalAppointmentId(),
                     patientId: patient.id,
                     providerId,
@@ -178,6 +195,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
             });
             const encounter = await tx.encounter.create({
                 data: {
+                    orgId: authReq.user.orgId,
                     externalId: createExternalEncounterId(new Date(payload.appointmentTime)),
                     appointmentId: appointment.id,
                     patientId: patient.id,
@@ -188,6 +206,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
             });
             const note = await tx.note.create({
                 data: {
+                    orgId: authReq.user.orgId,
                     encounterId: encounter.id,
                     status: "DRAFT_HIDDEN",
                     visibility: "HIDDEN",
@@ -199,6 +218,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
             });
             await tx.noteVersion.create({
                 data: {
+                    orgId: authReq.user.orgId,
                     noteId: note.id,
                     versionNumber: 1,
                     source: "appointment-create",
@@ -207,8 +227,8 @@ appointmentRoutes.post("/", async (req, res, next) => {
                     createdById: authReq.user.id
                 }
             });
-            return tx.appointment.findUniqueOrThrow({
-                where: { id: appointment.id },
+            return tx.appointment.findFirstOrThrow({
+                where: { id: appointment.id, orgId: authReq.user.orgId },
                 include: {
                     patient: true,
                     encounter: true,
@@ -237,7 +257,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
 appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async (req, res, next) => {
     try {
         const authReq = req;
-        const appointment = await resolveAppointment(req.params.appointmentId);
+        const appointment = await resolveAppointment(authReq.user.orgId, req.params.appointmentId);
         if (!appointment) {
             throw new ApiError(404, "Appointment not found");
         }
@@ -264,6 +284,7 @@ appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async 
             const structuredSizeBytes = await persistStructuredChart(structuredPath, extraction.extractedJson);
             const asset = await prisma.chartAsset.create({
                 data: {
+                    orgId: authReq.user.orgId,
                     appointmentId: appointment.id,
                     encounterId,
                     patientId: appointment.patient.id,
@@ -279,6 +300,7 @@ appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async 
             if (appointment.encounter) {
                 await prisma.exportArtifact.create({
                     data: {
+                        orgId: authReq.user.orgId,
                         encounterId: appointment.encounter.id,
                         noteId: appointment.encounter.note?.id,
                         type: ArtifactType.STRUCTURED_CHART_JSON,

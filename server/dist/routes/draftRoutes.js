@@ -13,9 +13,11 @@ function toVisitType(appointmentType) {
 }
 export const draftRoutes = Router();
 draftRoutes.use(requireRole(["ADMIN", "MA", "CLINICIAN"]));
-draftRoutes.get("/", async (_req, res, next) => {
+draftRoutes.get("/", async (req, res, next) => {
     try {
+        const authReq = req;
         const notes = await prisma.note.findMany({
+            where: { orgId: authReq.user.orgId },
             include: {
                 encounter: {
                     include: {
@@ -67,8 +69,10 @@ draftRoutes.get("/", async (_req, res, next) => {
 });
 draftRoutes.get("/:draftId", async (req, res, next) => {
     try {
+        const authReq = req;
         const draft = await prisma.note.findFirst({
             where: {
+                orgId: authReq.user.orgId,
                 OR: [{ id: req.params.draftId }]
             },
             include: {

@@ -1,10 +1,10 @@
 import { useState } from "react"
 import { motion } from "motion/react"
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Calendar, 
-  Download, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Download,
   Users,
   FileText,
   DollarSign,
@@ -25,34 +25,63 @@ import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts"
 
 interface MetricCardProps {
   title: string
   value: string | number
   baseline: string | number
   change: number
-  changeType: 'increase' | 'decrease'
-  trend: 'up' | 'down'
+  changeType: "increase" | "decrease"
+  trend: "up" | "down"
   icon: any
   description?: string
   color?: string
 }
 
-function MetricCard({ title, value, baseline, change, changeType, trend, icon: Icon, description, color = "blue" }: MetricCardProps) {
-  const isPositive = (changeType === 'increase' && trend === 'up') || (changeType === 'decrease' && trend === 'down')
-  
+function MetricCard({
+  title,
+  value,
+  baseline,
+  change,
+  changeType,
+  trend,
+  icon: Icon,
+  description,
+  color = "blue"
+}: MetricCardProps) {
+  const isPositive = (changeType === "increase" && trend === "up") || (changeType === "decrease" && trend === "down")
+
   return (
     <Card className="relative overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-foreground">{title}</CardTitle>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-          color === 'blue' ? 'bg-blue-100 text-blue-600' :
-          color === 'green' ? 'bg-emerald-100 text-emerald-600' :
-          color === 'purple' ? 'bg-purple-100 text-purple-600' :
-          color === 'orange' ? 'bg-orange-100 text-orange-600' :
-          'bg-slate-100 text-slate-600'
-        }`}>
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            color === "blue"
+              ? "bg-blue-100 text-blue-600"
+              : color === "green"
+                ? "bg-emerald-100 text-emerald-600"
+                : color === "purple"
+                  ? "bg-purple-100 text-purple-600"
+                  : color === "orange"
+                    ? "bg-orange-100 text-orange-600"
+                    : "bg-slate-100 text-slate-600"
+          }`}
+        >
           <Icon className="w-4 h-4" />
         </div>
       </CardHeader>
@@ -60,20 +89,18 @@ function MetricCard({ title, value, baseline, change, changeType, trend, icon: I
         <div className="flex items-baseline justify-between">
           <div>
             <div className="text-2xl font-semibold">{value}</div>
-            <p className="text-xs text-muted-foreground">
-              Baseline: {baseline}
-            </p>
+            <p className="text-xs text-muted-foreground">Baseline: {baseline}</p>
           </div>
-          <div className={`flex items-center gap-1 text-xs font-medium ${
-            isPositive ? 'text-emerald-600' : 'text-red-600'
-          }`}>
-            {trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+          <div
+            className={`flex items-center gap-1 text-xs font-medium ${
+              isPositive ? "text-emerald-600" : "text-red-600"
+            }`}
+          >
+            {trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {Math.abs(change)}%
           </div>
         </div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-2">{description}</p>
-        )}
+        {description && <p className="text-xs text-muted-foreground mt-2">{description}</p>}
       </CardContent>
     </Card>
   )
@@ -102,7 +129,7 @@ function DashboardFilters({ onDateRangeChange, onClinicianChange, onExport }: Da
           </SelectContent>
         </Select>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <Users className="w-4 h-4 text-muted-foreground" />
         <Select defaultValue="all">
@@ -117,7 +144,7 @@ function DashboardFilters({ onDateRangeChange, onClinicianChange, onExport }: Da
           </SelectContent>
         </Select>
       </div>
-      
+
       <Button onClick={onExport} variant="outline" size="sm" className="ml-auto">
         <Download className="w-4 h-4 mr-2" />
         Export PDF
@@ -128,38 +155,38 @@ function DashboardFilters({ onDateRangeChange, onClinicianChange, onExport }: Da
 
 function BillingCodingDashboard() {
   const revenueData = [
-    { name: 'Mon', value: 2400, baseline: 2200 },
-    { name: 'Tue', value: 2800, baseline: 2300 },
-    { name: 'Wed', value: 3200, baseline: 2400 },
-    { name: 'Thu', value: 2900, baseline: 2500 },
-    { name: 'Fri', value: 3400, baseline: 2600 },
-    { name: 'Sat', value: 1800, baseline: 1500 },
-    { name: 'Sun', value: 1200, baseline: 1000 }
+    { name: "Mon", value: 2400, baseline: 2200 },
+    { name: "Tue", value: 2800, baseline: 2300 },
+    { name: "Wed", value: 3200, baseline: 2400 },
+    { name: "Thu", value: 2900, baseline: 2500 },
+    { name: "Fri", value: 3400, baseline: 2600 },
+    { name: "Sat", value: 1800, baseline: 1500 },
+    { name: "Sun", value: 1200, baseline: 1000 }
   ]
-  
+
   const denialData = [
-    { name: 'Week 1', denials: 12, total: 340 },
-    { name: 'Week 2', denials: 8, total: 356 },
-    { name: 'Week 3', denials: 15, total: 389 },
-    { name: 'Week 4', denials: 6, total: 412 }
+    { name: "Week 1", denials: 12, total: 340 },
+    { name: "Week 2", denials: 8, total: 356 },
+    { name: "Week 3", denials: 15, total: 389 },
+    { name: "Week 4", denials: 6, total: 412 }
   ]
 
   const codeDistribution = [
-    { name: '99213', value: 35, color: '#3b82f6' },
-    { name: '99214', value: 28, color: '#10b981' },
-    { name: '99215', value: 20, color: '#8b5cf6' },
-    { name: '99212', value: 12, color: '#f59e0b' },
-    { name: 'Other', value: 5, color: '#6b7280' }
+    { name: "99213", value: 35, color: "#3b82f6" },
+    { name: "99214", value: 28, color: "#10b981" },
+    { name: "99215", value: 20, color: "#8b5cf6" },
+    { name: "99212", value: 12, color: "#f59e0b" },
+    { name: "Other", value: 5, color: "#6b7280" }
   ]
 
   return (
     <div className="space-y-6">
-      <DashboardFilters 
+      <DashboardFilters
         onDateRangeChange={() => {}}
         onClinicianChange={() => {}}
-        onExport={() => console.log('Export billing dashboard')}
+        onExport={() => console.log("Export billing dashboard")}
       />
-      
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -283,22 +310,22 @@ function BillingCodingDashboard() {
 
 function HealthOutcomesDashboard() {
   const outcomeData = [
-    { name: 'Jan', satisfaction: 4.2, readmissions: 8, outcomes: 87 },
-    { name: 'Feb', satisfaction: 4.4, readmissions: 6, outcomes: 89 },
-    { name: 'Mar', satisfaction: 4.3, readmissions: 7, outcomes: 88 },
-    { name: 'Apr', satisfaction: 4.6, readmissions: 5, outcomes: 91 },
-    { name: 'May', satisfaction: 4.5, readmissions: 4, outcomes: 92 },
-    { name: 'Jun', satisfaction: 4.7, readmissions: 3, outcomes: 94 }
+    { name: "Jan", satisfaction: 4.2, readmissions: 8, outcomes: 87 },
+    { name: "Feb", satisfaction: 4.4, readmissions: 6, outcomes: 89 },
+    { name: "Mar", satisfaction: 4.3, readmissions: 7, outcomes: 88 },
+    { name: "Apr", satisfaction: 4.6, readmissions: 5, outcomes: 91 },
+    { name: "May", satisfaction: 4.5, readmissions: 4, outcomes: 92 },
+    { name: "Jun", satisfaction: 4.7, readmissions: 3, outcomes: 94 }
   ]
 
   return (
     <div className="space-y-6">
-      <DashboardFilters 
+      <DashboardFilters
         onDateRangeChange={() => {}}
         onClinicianChange={() => {}}
-        onExport={() => console.log('Export health outcomes dashboard')}
+        onExport={() => console.log("Export health outcomes dashboard")}
       />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Patient Satisfaction"
@@ -389,20 +416,20 @@ function HealthOutcomesDashboard() {
 
 function NoteQualityDashboard() {
   const qualityData = [
-    { name: 'Week 1', completeness: 82, accuracy: 89, beauty: 156 },
-    { name: 'Week 2', completeness: 85, accuracy: 91, beauty: 178 },
-    { name: 'Week 3', completeness: 88, accuracy: 93, beauty: 194 },
-    { name: 'Week 4', completeness: 90, accuracy: 95, beauty: 203 }
+    { name: "Week 1", completeness: 82, accuracy: 89, beauty: 156 },
+    { name: "Week 2", completeness: 85, accuracy: 91, beauty: 178 },
+    { name: "Week 3", completeness: 88, accuracy: 93, beauty: 194 },
+    { name: "Week 4", completeness: 90, accuracy: 95, beauty: 203 }
   ]
 
   return (
     <div className="space-y-6">
-      <DashboardFilters 
+      <DashboardFilters
         onDateRangeChange={() => {}}
         onClinicianChange={() => {}}
-        onExport={() => console.log('Export note quality dashboard')}
+        onExport={() => console.log("Export note quality dashboard")}
       />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Notes"
@@ -494,10 +521,10 @@ function NoteQualityDashboard() {
 
 function StaffPerformanceDashboard() {
   const staffData = [
-    { name: 'Dr. Johnson', notes: 145, accuracy: 94, efficiency: 87, revenue: 28450 },
-    { name: 'Dr. Smith', notes: 132, accuracy: 91, efficiency: 92, revenue: 25680 },
-    { name: 'NP Williams', notes: 98, accuracy: 89, efficiency: 88, revenue: 18920 },
-    { name: 'Dr. Brown', notes: 156, accuracy: 96, efficiency: 85, revenue: 31200 }
+    { name: "Dr. Johnson", notes: 145, accuracy: 94, efficiency: 87, revenue: 28450 },
+    { name: "Dr. Smith", notes: 132, accuracy: 91, efficiency: 92, revenue: 25680 },
+    { name: "NP Williams", notes: 98, accuracy: 89, efficiency: 88, revenue: 18920 },
+    { name: "Dr. Brown", notes: 156, accuracy: 96, efficiency: 85, revenue: 31200 }
   ]
 
   return (
@@ -512,12 +539,12 @@ function StaffPerformanceDashboard() {
         </p>
       </div>
 
-      <DashboardFilters 
+      <DashboardFilters
         onDateRangeChange={() => {}}
         onClinicianChange={() => {}}
-        onExport={() => console.log('Export staff performance dashboard')}
+        onExport={() => console.log("Export staff performance dashboard")}
       />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Team Productivity"
@@ -590,11 +617,11 @@ function StaffPerformanceDashboard() {
 }
 
 interface AnalyticsProps {
-  userRole?: 'admin' | 'user'
+  userRole?: "admin" | "user"
 }
 
-export function Analytics({ userRole = 'user' }: AnalyticsProps) {
-  const [activeTab, setActiveTab] = useState('billing')
+export function Analytics({ userRole = "user" }: AnalyticsProps) {
+  const [activeTab, setActiveTab] = useState("billing")
 
   return (
     <div className="p-6 space-y-6">
@@ -624,14 +651,10 @@ export function Analytics({ userRole = 'user' }: AnalyticsProps) {
             <FileText className="w-4 h-4" />
             Note Quality
           </TabsTrigger>
-          <TabsTrigger 
-            value="staff" 
-            disabled={userRole !== 'admin'}
-            className="flex items-center gap-2"
-          >
+          <TabsTrigger value="staff" disabled={userRole !== "admin"} className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Staff Performance
-            {userRole !== 'admin' && <Shield className="w-3 h-3 ml-1" />}
+            {userRole !== "admin" && <Shield className="w-3 h-3 ml-1" />}
           </TabsTrigger>
         </TabsList>
 

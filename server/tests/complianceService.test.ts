@@ -19,5 +19,8 @@ test("generateComplianceIssues produces fewer critical issues for complete notes
     selectedCodes: ["99213"]
   })
 
-  assert.equal(issues.some((issue) => issue.severity === "CRITICAL"), false)
+  assert.equal(
+    issues.some((issue) => issue.severity === "CRITICAL"),
+    false
+  )
 })

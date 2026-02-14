@@ -9,6 +9,7 @@ interface JwtPayload {
   email: string
   name: string
   role: UserRole
+  orgId: string
 }
 
 export function signAuthToken(user: AuthUser): string {
@@ -17,7 +18,8 @@ export function signAuthToken(user: AuthUser): string {
       sub: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      orgId: user.orgId
     },
     env.JWT_SECRET,
     { expiresIn: `${env.SESSION_TTL_HOURS}h` }
@@ -63,11 +65,16 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload
+    if (!payload.orgId) {
+      res.status(401).json({ error: "Invalid or expired token" })
+      return
+    }
     req.user = {
       id: payload.sub,
       email: payload.email,
       name: payload.name,
-      role: payload.role
+      role: payload.role,
+      orgId: payload.orgId
     }
     next()
   } catch {

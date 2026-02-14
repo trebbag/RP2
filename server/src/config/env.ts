@@ -12,11 +12,18 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(24),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   STORAGE_DIR: z.string().default(path.resolve(process.cwd(), "storage")),
+  AUTH_MODE: z.enum(["local", "oidc"]).optional(),
+  OIDC_ISSUER_URL: z.string().url().optional(),
+  OIDC_CLIENT_ID: z.string().min(1).optional(),
+  OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+  OIDC_REDIRECT_URI: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-5-mini"),
   OPENAI_STT_MODEL: z.string().default("gpt-4o-mini-transcribe"),
+  TRANSCRIPTION_PROVIDER: z.enum(["openai", "offlineMock"]).default("offlineMock"),
   DIARIZATION_SPEAKERS: z.string().default("Doctor,Patient"),
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(2555),
+  TRANSCRIPT_RETENTION_DAYS: z.coerce.number().int().nonnegative().default(7),
   BILLING_SCHEDULES_PATH: z.string().optional(),
   ALLOW_DEV_LOGIN: z.coerce.boolean().optional(),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().optional(),
@@ -70,12 +77,16 @@ if (!parsed.success) {
 
 const parsedEnv = parsed.data
 
+const resolvedAuthMode = parsedEnv.AUTH_MODE ?? (parsedEnv.NODE_ENV === "production" ? "oidc" : "local")
+
 const normalizedEnv = {
   ...parsedEnv,
   ALLOW_DEV_LOGIN: parsedEnv.ALLOW_DEV_LOGIN ?? (parsedEnv.NODE_ENV === "production" ? false : true),
   SESSION_TTL_HOURS: parsedEnv.SESSION_TTL_HOURS ?? (parsedEnv.NODE_ENV === "production" ? 12 : 720),
   REFRESH_TOKEN_TTL_HOURS: parsedEnv.REFRESH_TOKEN_TTL_HOURS ?? (parsedEnv.NODE_ENV === "production" ? 168 : 720),
-  MFA_REQUIRED: parsedEnv.MFA_REQUIRED ?? (parsedEnv.NODE_ENV === "production" ? true : false)
+  MFA_REQUIRED:
+    parsedEnv.MFA_REQUIRED ?? (parsedEnv.NODE_ENV === "production" && resolvedAuthMode === "local" ? true : false),
+  AUTH_MODE: resolvedAuthMode
 }
 
 if (normalizedEnv.NODE_ENV === "production") {
@@ -90,13 +101,26 @@ if (normalizedEnv.NODE_ENV === "production") {
   if (normalizedEnv.REFRESH_TOKEN_TTL_HOURS > 24 * 30) {
     productionConfigErrors.push("REFRESH_TOKEN_TTL_HOURS must be <= 720 (30 days) in production.")
   }
-  if (!normalizedEnv.MFA_REQUIRED) {
-    productionConfigErrors.push("MFA_REQUIRED must be true in production.")
+  if (normalizedEnv.AUTH_MODE === "local") {
+    productionConfigErrors.push("AUTH_MODE must be oidc in production.")
   }
 
   if (productionConfigErrors.length > 0) {
     console.error("Invalid production security configuration", productionConfigErrors)
     throw new Error("Production security configuration validation failed")
+  }
+}
+
+if (normalizedEnv.AUTH_MODE === "oidc") {
+  const missing: string[] = []
+  if (!normalizedEnv.OIDC_ISSUER_URL) missing.push("OIDC_ISSUER_URL")
+  if (!normalizedEnv.OIDC_CLIENT_ID) missing.push("OIDC_CLIENT_ID")
+  if (!normalizedEnv.OIDC_CLIENT_SECRET) missing.push("OIDC_CLIENT_SECRET")
+  if (!normalizedEnv.OIDC_REDIRECT_URI) missing.push("OIDC_REDIRECT_URI")
+
+  if (missing.length > 0) {
+    console.error("AUTH_MODE=oidc requires OIDC configuration", missing)
+    throw new Error("OIDC configuration validation failed")
   }
 }
 

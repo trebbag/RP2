@@ -47,7 +47,10 @@ test("golden eval: suggestions task meets expected coding/content contract", asy
   }
 
   if (fixture.expectations.requireEvidence) {
-    assert.equal(result.output.every((item) => item.evidence.length > 0), true)
+    assert.equal(
+      result.output.every((item) => item.evidence.length > 0),
+      true
+    )
   }
 
   assert.equal(result.trace.promptVersionId?.startsWith("prompt-"), true)

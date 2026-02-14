@@ -66,7 +66,10 @@ function toBase32(buffer: Buffer): string {
 }
 
 function fromBase32(value: string): Buffer {
-  const normalized = value.toUpperCase().replace(/=+$/g, "").replace(/[^A-Z2-7]/g, "")
+  const normalized = value
+    .toUpperCase()
+    .replace(/=+$/g, "")
+    .replace(/[^A-Z2-7]/g, "")
   let bits = 0
   let buffer = 0
   const bytes: number[] = []
@@ -132,11 +135,7 @@ export function buildOtpAuthUrl(input: { email: string; secret: string }): strin
 }
 
 function hashBackupCode(code: string): string {
-  return createHash("sha256")
-    .update(code)
-    .update("|")
-    .update(env.JWT_SECRET)
-    .digest("hex")
+  return createHash("sha256").update(code).update("|").update(env.JWT_SECRET).digest("hex")
 }
 
 export function generateBackupCodes(count = 8): { plain: string[]; hashed: string[] } {

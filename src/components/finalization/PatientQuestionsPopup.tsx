@@ -1,16 +1,6 @@
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import {
-  MessageSquare,
-  X,
-  Edit3,
-  Send,
-  Users,
-  HelpCircle,
-  Plus,
-  User,
-  AlertTriangle
-} from "lucide-react"
+import { MessageSquare, X, Edit3, Send, Users, HelpCircle, Plus, User, AlertTriangle } from "lucide-react"
 import { Button } from "../ui/button"
 import { Card } from "../ui/card"
 

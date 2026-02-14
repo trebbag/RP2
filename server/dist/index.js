@@ -3,11 +3,14 @@ import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { prisma } from "./lib/prisma.js";
 import { emitDeadLetterAlertIfNeeded, processDueDispatchJobs } from "./services/dispatchService.js";
+import { ensureDefaultOrganization, ensureSystemOrganization } from "./services/tenantService.js";
 const app = createApp();
 let dispatchWorkerTimer = null;
 const server = app.listen(env.PORT, async () => {
     try {
         await prisma.$connect();
+        await ensureSystemOrganization();
+        await ensureDefaultOrganization();
         logger.info(`RevenuePilot server listening on port ${env.PORT}`);
         dispatchWorkerTimer = setInterval(async () => {
             try {

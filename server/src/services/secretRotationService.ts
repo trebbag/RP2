@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js"
 import { writeSystemAuditLog } from "../middleware/audit.js"
 
 interface RotationEventInput {
+  orgId: string
   actorId: string
   ticketId: string
   secrets: string[]
@@ -14,6 +15,7 @@ export async function recordSecretRotationEvent(input: RotationEventInput) {
   const rotatedAtIso = input.rotatedAt ?? new Date().toISOString()
 
   await writeSystemAuditLog({
+    orgId: input.orgId,
     action: "secret_rotation_recorded",
     entity: "security",
     entityId: input.ticketId,
@@ -33,9 +35,9 @@ export async function recordSecretRotationEvent(input: RotationEventInput) {
   }
 }
 
-export async function getSecretRotationStatus() {
+export async function getSecretRotationStatus(orgId: string) {
   const rows = await prisma.auditLog.findMany({
-    where: { action: "secret_rotation_recorded" },
+    where: { orgId, action: "secret_rotation_recorded" },
     orderBy: { createdAt: "desc" },
     take: 100
   })

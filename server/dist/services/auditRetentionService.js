@@ -3,13 +3,14 @@ import { prisma } from "../lib/prisma.js";
 function getCutoff(now, retentionDays) {
     return new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
 }
-export async function runAuditRetentionPolicy(input = {}) {
+export async function runAuditRetentionPolicy(input) {
     const now = input.now ?? new Date();
     const retentionDays = env.AUDIT_RETENTION_DAYS;
     const cutoff = getCutoff(now, retentionDays);
     const dryRun = input.dryRun ?? true;
     const eligibleCount = await prisma.auditLog.count({
         where: {
+            orgId: input.orgId,
             createdAt: {
                 lt: cutoff
             }
@@ -26,6 +27,7 @@ export async function runAuditRetentionPolicy(input = {}) {
     }
     const deleted = await prisma.auditLog.deleteMany({
         where: {
+            orgId: input.orgId,
             createdAt: {
                 lt: cutoff
             }

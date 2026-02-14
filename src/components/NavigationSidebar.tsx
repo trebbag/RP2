@@ -1,9 +1,6 @@
 import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { 
-  Stethoscope,
-  ChevronRight
-} from "lucide-react"
+import { Stethoscope, ChevronRight } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -25,7 +22,7 @@ interface CurrentUser {
   id: string
   name: string
   fullName: string
-  role: 'admin' | 'user'
+  role: "admin" | "user"
   specialty: string
 }
 
@@ -53,10 +50,10 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
   const content = (
     <motion.div
       ref={isNotifications ? buttonRef : undefined}
-      className={`relative flex items-center ${isCollapsed ? 'w-12 h-12 p-2 justify-center mx-auto' : 'w-full p-3'} rounded-xl transition-all duration-200 cursor-pointer group ${ 
+      className={`relative flex items-center ${isCollapsed ? "w-12 h-12 p-2 justify-center mx-auto" : "w-full p-3"} rounded-xl transition-all duration-200 cursor-pointer group ${
         isActive
-          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md' 
-          : 'hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground'
+          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+          : "hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground"
       }`}
       whileHover={{ scale: isCollapsed ? 1.05 : 1.02 }}
       whileTap={{ scale: 0.98 }}
@@ -65,13 +62,11 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
       onClick={onClick}
       layout
     >
-      <motion.div
-        className="relative flex items-center justify-center"
-      >
-        <item.icon 
-          className={`w-5 h-5 transition-all duration-200 ${ 
-            isActive ? 'text-sidebar-primary-foreground' : isHovered ? item.accentColor : 'text-sidebar-foreground'
-          }`} 
+      <motion.div className="relative flex items-center justify-center">
+        <item.icon
+          className={`w-5 h-5 transition-all duration-200 ${
+            isActive ? "text-sidebar-primary-foreground" : isHovered ? item.accentColor : "text-sidebar-foreground"
+          }`}
         />
       </motion.div>
 
@@ -85,18 +80,18 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
             transition={{ duration: 0.15 }}
           >
             <div className="flex flex-col">
-              <motion.span 
+              <motion.span
                 className={`font-medium text-sm leading-tight transition-colors duration-200 ${
-                  isActive ? 'text-sidebar-primary-foreground' : 'text-sidebar-foreground'
+                  isActive ? "text-sidebar-primary-foreground" : "text-sidebar-foreground"
                 }`}
                 layout="position"
               >
                 {item.title}
               </motion.span>
               {isHovered && (
-                <motion.span 
+                <motion.span
                   className={`text-xs mt-0.5 leading-tight transition-colors duration-200 ${
-                    isActive ? 'text-sidebar-primary-foreground/80' : 'text-sidebar-foreground/70'
+                    isActive ? "text-sidebar-primary-foreground/80" : "text-sidebar-foreground/70"
                   }`}
                   initial={{ opacity: 0, y: -3 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -107,7 +102,7 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
                 </motion.span>
               )}
             </div>
-            
+
             <div className="flex items-center gap-2">
               {item.badge && (
                 <motion.div
@@ -115,26 +110,25 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 >
-                  <Badge 
+                  <Badge
                     variant={isActive ? "secondary" : "outline"}
                     className={`text-xs px-2 py-0.5 font-medium transition-colors duration-200 ${
-                      isActive 
-                        ? 'bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground border-sidebar-primary-foreground/30' 
-                        : 'border-border/50'
+                      isActive
+                        ? "bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground border-sidebar-primary-foreground/30"
+                        : "border-border/50"
                     }`}
                   >
                     {item.badge}
                   </Badge>
                 </motion.div>
               )}
-              
-              <motion.div
-                animate={{ x: isHovered ? 3 : 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <ChevronRight className={`w-4 h-4 transition-colors duration-200 ${
-                  isActive ? 'text-sidebar-primary-foreground/70' : 'text-sidebar-foreground/50'
-                }`} />
+
+              <motion.div animate={{ x: isHovered ? 3 : 0 }} transition={{ duration: 0.15 }}>
+                <ChevronRight
+                  className={`w-4 h-4 transition-colors duration-200 ${
+                    isActive ? "text-sidebar-primary-foreground/70" : "text-sidebar-foreground/50"
+                  }`}
+                />
               </motion.div>
             </div>
           </motion.div>
@@ -148,9 +142,7 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         >
-          <span className="text-[10px] font-medium px-1">
-            {item.badge}
-          </span>
+          <span className="text-[10px] font-medium px-1">{item.badge}</span>
         </motion.div>
       )}
     </motion.div>
@@ -160,17 +152,14 @@ function NavItem({ item, isCollapsed, onClick, isCurrentView, isNotifications = 
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            {content}
-          </TooltipTrigger>
-          <TooltipContent side="right" className="flex flex-col bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary/20">
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent
+            side="right"
+            className="flex flex-col bg-sidebar-primary text-sidebar-primary-foreground border-sidebar-primary/20"
+          >
             <span className="font-medium">{item.title}</span>
             <span className="text-xs opacity-80">{item.description}</span>
-            {item.badge && (
-              <span className="text-xs mt-1 opacity-90">
-                {item.badge} items
-              </span>
-            )}
+            {item.badge && <span className="text-xs mt-1 opacity-90">{item.badge} items</span>}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -190,7 +179,15 @@ interface NavSectionProps {
   notificationButtonRef?: React.RefObject<HTMLDivElement>
 }
 
-function NavSection({ title, items, isCollapsed, currentView, onNavigate, onNotificationClick, notificationButtonRef }: NavSectionProps) {
+function NavSection({
+  title,
+  items,
+  isCollapsed,
+  currentView,
+  onNavigate,
+  onNotificationClick,
+  notificationButtonRef
+}: NavSectionProps) {
   return (
     <motion.div
       className="space-y-1"
@@ -199,38 +196,31 @@ function NavSection({ title, items, isCollapsed, currentView, onNavigate, onNoti
       transition={{ duration: 0.3 }}
     >
       {title && !isCollapsed && (
-        <motion.div
-          className="px-3 mb-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <h4 className="text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wide">
-            {title}
-          </h4>
+        <motion.div className="px-3 mb-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          <h4 className="text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wide">{title}</h4>
         </motion.div>
       )}
-      
+
       <div className="space-y-1">
         {items.map((item, index) => (
           <motion.div
             key={item.title}
             initial={{ opacity: 0, x: -15 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ 
-              duration: 0.2, 
+            transition={{
+              duration: 0.2,
               delay: index * 0.03,
               ease: "easeOut"
             }}
           >
-            <NavItem 
-              item={item} 
+            <NavItem
+              item={item}
               isCollapsed={isCollapsed}
               isCurrentView={currentView === item.key}
-              isNotifications={item.key === 'notifications'}
-              buttonRef={item.key === 'notifications' ? notificationButtonRef : undefined}
+              isNotifications={item.key === "notifications"}
+              buttonRef={item.key === "notifications" ? notificationButtonRef : undefined}
               onClick={() => {
-                if (item.key === 'notifications') {
+                if (item.key === "notifications") {
                   onNotificationClick?.()
                 } else {
                   onNavigate?.(item.key)
@@ -253,20 +243,18 @@ function NavigationSidebarContent({
 }: NavigationSidebarProps) {
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
-  
+
   // Notifications state
   const [notifications, setNotifications] = useState<Notification[]>(pilotMode ? [] : mockNotifications)
   const [showNotifications, setShowNotifications] = useState(false)
   const notificationButtonRef = useRef<HTMLDivElement>(null)
 
   const primaryNavItems = getPrimaryNavItems(userDraftCount)
-  
+
   // Update notifications badge count with unread notifications
-  const unreadCount = notifications.filter(n => !n.isRead).length
-  const bottomNavItemsWithCount = bottomNavItems.map(item => 
-    item.key === 'notifications' 
-      ? { ...item, badge: unreadCount > 0 ? unreadCount.toString() : null }
-      : item
+  const unreadCount = notifications.filter((n) => !n.isRead).length
+  const bottomNavItemsWithCount = bottomNavItems.map((item) =>
+    item.key === "notifications" ? { ...item, badge: unreadCount > 0 ? unreadCount.toString() : null } : item
   )
 
   const handleNotificationClick = () => {
@@ -274,19 +262,13 @@ function NavigationSidebarContent({
   }
 
   const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, isRead: true }
-          : notification
-      )
+    setNotifications((prev) =>
+      prev.map((notification) => (notification.id === id ? { ...notification, isRead: true } : notification))
     )
   }
 
   const handleMarkAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, isRead: true }))
-    )
+    setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })))
   }
 
   const handleCloseNotifications = () => {
@@ -295,10 +277,10 @@ function NavigationSidebarContent({
 
   return (
     <>
-      <SidebarContent className={`${isCollapsed ? 'p-3' : 'p-5'} space-y-6 bg-sidebar border-sidebar-border/50`}>
+      <SidebarContent className={`${isCollapsed ? "p-3" : "p-5"} space-y-6 bg-sidebar border-sidebar-border/50`}>
         {/* Clean Header */}
         <motion.div
-          className={`flex items-center gap-3 ${isCollapsed ? 'px-0 justify-center' : 'px-2'}`}
+          className={`flex items-center gap-3 ${isCollapsed ? "px-0 justify-center" : "px-2"}`}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, type: "spring" }}
@@ -306,10 +288,10 @@ function NavigationSidebarContent({
           <div className="w-9 h-9 bg-sidebar-primary rounded-xl flex items-center justify-center shadow-sm">
             <Stethoscope className="w-4 h-4 text-sidebar-primary-foreground" />
           </div>
-          
+
           <AnimatePresence>
             {!isCollapsed && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
@@ -317,7 +299,7 @@ function NavigationSidebarContent({
               >
                 <h2 className="font-semibold text-sidebar-foreground">RevenuePilot</h2>
                 <p className="text-xs text-sidebar-foreground/60">
-                  {currentUser ? `Welcome, ${currentUser.name}` : 'Clinical AI Assistant'}
+                  {currentUser ? `Welcome, ${currentUser.name}` : "Clinical AI Assistant"}
                 </p>
               </motion.div>
             )}
@@ -328,8 +310,8 @@ function NavigationSidebarContent({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0">
-              <NavSection 
-                items={primaryNavItems} 
+              <NavSection
+                items={primaryNavItems}
                 isCollapsed={isCollapsed}
                 currentView={currentView}
                 onNavigate={onNavigate}
@@ -353,9 +335,9 @@ function NavigationSidebarContent({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-0">
-              <NavSection 
+              <NavSection
                 title="Tools & Resources"
-                items={secondaryNavItems} 
+                items={secondaryNavItems}
                 isCollapsed={isCollapsed}
                 currentView={currentView}
                 onNavigate={onNavigate}
@@ -365,8 +347,8 @@ function NavigationSidebarContent({
         </SidebarGroup>
 
         {/* Bottom Navigation */}
-        <motion.div 
-          className={`mt-auto pt-4 ${!isCollapsed ? 'border-t border-sidebar-border/60' : ''}`}
+        <motion.div
+          className={`mt-auto pt-4 ${!isCollapsed ? "border-t border-sidebar-border/60" : ""}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
@@ -374,8 +356,8 @@ function NavigationSidebarContent({
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-0">
-                <NavSection 
-                  items={bottomNavItemsWithCount} 
+                <NavSection
+                  items={bottomNavItemsWithCount}
                   isCollapsed={isCollapsed}
                   currentView={currentView}
                   onNavigate={onNavigate}
@@ -387,7 +369,7 @@ function NavigationSidebarContent({
           </SidebarGroup>
         </motion.div>
       </SidebarContent>
-      
+
       {/* Notifications Panel */}
       <NotificationsPanel
         isOpen={showNotifications}
@@ -401,11 +383,17 @@ function NavigationSidebarContent({
   )
 }
 
-export function NavigationSidebar({ currentView, onNavigate, currentUser, userDraftCount, pilotMode = true }: NavigationSidebarProps) {
+export function NavigationSidebar({
+  currentView,
+  onNavigate,
+  currentUser,
+  userDraftCount,
+  pilotMode = true
+}: NavigationSidebarProps) {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/50">
-      <NavigationSidebarContent 
-        currentView={currentView} 
+      <NavigationSidebarContent
+        currentView={currentView}
         onNavigate={onNavigate}
         currentUser={currentUser}
         userDraftCount={userDraftCount}

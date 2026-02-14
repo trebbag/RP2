@@ -1,11 +1,13 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import supertest from "supertest"
+import { clearTablesInOrder, createAdminPrisma, resolveIntegrationAdminDbUrl } from "./helpers/adminDb.js"
 
 const shouldRunIntegration = process.env.RP2_RUN_INTEGRATION === "1"
 const integrationDbUrl = process.env.RP2_INTEGRATION_DB_URL || process.env.DATABASE_URL
+const integrationAdminDbUrl = resolveIntegrationAdminDbUrl()
 
-if (!shouldRunIntegration || !integrationDbUrl) {
+if (!shouldRunIntegration || !integrationDbUrl || !integrationAdminDbUrl) {
   test("phi boundary integration (skipped)", { skip: true }, () => {
     assert.ok(true)
   })
@@ -18,33 +20,13 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     process.env.RP2_OFFLINE_AI = process.env.RP2_OFFLINE_AI || "1"
 
     const { createApp } = await import("../src/app.js")
-    const { prisma } = await import("../src/lib/prisma.js")
+    const adminPrisma = createAdminPrisma()
 
     const app = createApp()
     const request = supertest(app)
 
-    await prisma.$connect()
-
-    const clearTablesInOrder = async () => {
-      await prisma.auditLog.deleteMany({})
-      await prisma.exportArtifact.deleteMany({})
-      await prisma.wizardStepState.deleteMany({})
-      await prisma.wizardRun.deleteMany({})
-      await prisma.complianceIssue.deleteMany({})
-      await prisma.codeSelection.deleteMany({})
-      await prisma.codeSuggestion.deleteMany({})
-      await prisma.suggestionGeneration.deleteMany({})
-      await prisma.transcriptSegment.deleteMany({})
-      await prisma.noteVersion.deleteMany({})
-      await prisma.note.deleteMany({})
-      await prisma.encounter.deleteMany({})
-      await prisma.chartAsset.deleteMany({})
-      await prisma.appointment.deleteMany({})
-      await prisma.patient.deleteMany({})
-      await prisma.user.deleteMany({})
-    }
-
-    await clearTablesInOrder()
+    await adminPrisma.$connect()
+    await clearTablesInOrder(adminPrisma)
 
     const login = await request.post("/api/auth/dev-login").send({
       email: "phi.boundary.clinician@revenuepilot.local",
@@ -73,19 +55,16 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(createdAppointment.status, 201)
     const encounterId = createdAppointment.body.appointment.encounterId as string
 
-    const compose = await request
-      .post(`/api/wizard/${encounterId}/compose`)
-      .set(auth)
-      .send({
-        noteContent: "ASSESSMENT:\nStable.\nPLAN:\nFollow up.",
-        patientName: "Should Be Rejected"
-      })
+    const compose = await request.post(`/api/wizard/${encounterId}/compose`).set(auth).send({
+      noteContent: "ASSESSMENT:\nStable.\nPLAN:\nFollow up.",
+      patientName: "Should Be Rejected"
+    })
 
     assert.equal(compose.status, 400)
     assert.equal(compose.body.error, "Validation error")
     assert.equal(JSON.stringify(compose.body).includes("Should Be Rejected"), false)
 
-    await clearTablesInOrder()
-    await prisma.$disconnect()
+    await clearTablesInOrder(adminPrisma)
+    await adminPrisma.$disconnect()
   })
 }

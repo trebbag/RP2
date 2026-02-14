@@ -2,16 +2,18 @@ import { useState } from "react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "./ui/alert-dialog"
 import { Textarea } from "./ui/textarea"
-import { 
-  FileText,
-  Activity,
-  Pill,
-  Stethoscope,
-  X,
-  ArrowUpDown
-} from "lucide-react"
+import { FileText, Activity, Pill, Stethoscope, X, ArrowUpDown } from "lucide-react"
 
 interface SelectedCodesBarProps {
   selectedCodes: {
@@ -22,11 +24,17 @@ interface SelectedCodesBarProps {
   }
   onUpdateCodes: (codes: { codes: number; prevention: number; diagnoses: number; differentials: number }) => void
   selectedCodesList: any[]
-  onRemoveCode?: (code: any, action: 'clear' | 'return', reasoning?: string) => void
-  onChangeCategoryCode?: (code: any, newCategory: 'diagnoses' | 'differentials') => void
+  onRemoveCode?: (code: any, action: "clear" | "return", reasoning?: string) => void
+  onChangeCategoryCode?: (code: any, newCategory: "diagnoses" | "differentials") => void
 }
 
-export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesList, onRemoveCode, onChangeCategoryCode }: SelectedCodesBarProps) {
+export function SelectedCodesBar({
+  selectedCodes,
+  onUpdateCodes,
+  selectedCodesList,
+  onRemoveCode,
+  onChangeCategoryCode
+}: SelectedCodesBarProps) {
   const [activeCategories, setActiveCategories] = useState({
     codes: true,
     prevention: true,
@@ -39,7 +47,7 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
   const [removeReasoning, setRemoveReasoning] = useState("")
 
   const toggleCategory = (category: string) => {
-    setActiveCategories(prev => ({
+    setActiveCategories((prev) => ({
       ...prev,
       [category]: !prev[category]
     }))
@@ -51,10 +59,10 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
     setShowRemoveDialog(true)
   }
 
-  const confirmRemoval = (action: 'clear' | 'return') => {
+  const confirmRemoval = (action: "clear" | "return") => {
     if (selectedCodeToRemove && onRemoveCode) {
       onRemoveCode(selectedCodeToRemove, action, removeReasoning || undefined)
-      
+
       // Update the counts
       const updatedCodes = { ...selectedCodes }
       if (selectedCodeToRemove.category) {
@@ -97,7 +105,7 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
     }
 
     const categoryStyle = categoryInfo[codeItem.category] || categoryInfo.diagnoses
-    
+
     return {
       ...codeItem,
       icon: categoryStyle.icon,
@@ -113,7 +121,7 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
   // Helper functions for detailed information
   const getBillingConsiderations = (codeItem: any) => {
     if (codeItem.type === "CPT") {
-      return codeItem.code.startsWith("992") || codeItem.code.startsWith("993") 
+      return codeItem.code.startsWith("992") || codeItem.code.startsWith("993")
         ? "Requires documentation of medically appropriate history/exam and appropriate level of medical decision making."
         : "Ensure proper documentation of medical necessity for billing."
     } else if (codeItem.type === "ICD-10") {
@@ -139,50 +147,51 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
   const selectedCodesDetails = selectedCodesList.map(getCodeDisplayInfo)
 
   // Filter codes based on active categories
-  const filteredCodes = selectedCodesDetails.filter(code => activeCategories[code.category])
+  const filteredCodes = selectedCodesDetails.filter((code) => activeCategories[code.category])
 
   // Category configurations
   const categoryConfigs = [
     {
-      key: 'codes',
-      title: 'Codes',
+      key: "codes",
+      title: "Codes",
       icon: FileText,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-      borderColor: 'border-blue-200',
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+      borderColor: "border-blue-200",
       count: selectedCodes.codes
     },
     {
-      key: 'prevention',
-      title: 'Prevention',
+      key: "prevention",
+      title: "Prevention",
       icon: Stethoscope,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
-      borderColor: 'border-red-200',
+      color: "text-red-600",
+      bgColor: "bg-red-100",
+      borderColor: "border-red-200",
       count: selectedCodes.prevention
     },
     {
-      key: 'diagnoses',
-      title: 'Diagnoses',
+      key: "diagnoses",
+      title: "Diagnoses",
       icon: Activity,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-      borderColor: 'border-purple-200',
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
+      borderColor: "border-purple-200",
       count: selectedCodes.diagnoses
     },
     {
-      key: 'differentials',
-      title: 'Differentials',
+      key: "differentials",
+      title: "Differentials",
       icon: Pill,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-      borderColor: 'border-green-200',
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+      borderColor: "border-green-200",
       count: selectedCodes.differentials
     }
   ]
 
   // Calculate total codes
-  const totalCodes = selectedCodes.codes + selectedCodes.prevention + selectedCodes.diagnoses + selectedCodes.differentials
+  const totalCodes =
+    selectedCodes.codes + selectedCodes.prevention + selectedCodes.diagnoses + selectedCodes.differentials
   const visibleCodes = filteredCodes.length
 
   // Circular confidence indicator component
@@ -190,29 +199,18 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
     const radius = (size - 4) / 2
     const circumference = 2 * Math.PI * radius
     const strokeDashoffset = circumference - (confidence / 100) * circumference
-    
+
     const getColor = (conf: number) => {
-      if (conf >= 80) return '#10b981' // green-500
-      if (conf >= 60) return '#eab308' // yellow-500
-      return '#ef4444' // red-500
+      if (conf >= 80) return "#10b981" // green-500
+      if (conf >= 60) return "#eab308" // yellow-500
+      return "#ef4444" // red-500
     }
 
     return (
       <div className="relative" style={{ width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          className="transform -rotate-90"
-        >
+        <svg width={size} height={size} className="transform -rotate-90">
           {/* Background circle */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#e5e7eb"
-            strokeWidth="2"
-            fill="none"
-          />
+          <circle cx={size / 2} cy={size / 2} r={radius} stroke="#e5e7eb" strokeWidth="2" fill="none" />
           {/* Progress circle */}
           <circle
             cx={size / 2}
@@ -229,9 +227,7 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
         </svg>
         {/* Confidence percentage text */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-medium text-muted-foreground">
-            {confidence}
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">{confidence}</span>
         </div>
       </div>
     )
@@ -257,17 +253,18 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
                       onClick={() => toggleCategory(category.key)}
                       className={`
                         h-8 px-3 gap-2 text-xs transition-all
-                        ${isActive 
-                          ? `${category.bgColor} ${category.color} ${category.borderColor} border` 
-                          : 'bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted'
+                        ${
+                          isActive
+                            ? `${category.bgColor} ${category.color} ${category.borderColor} border`
+                            : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted"
                         }
                       `}
                     >
                       <CategoryIcon className="h-3.5 w-3.5" />
                       <span className="font-medium">{category.title}</span>
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs px-1.5 py-0 h-4 ${isActive ? 'bg-white/80' : 'bg-muted-foreground/20'}`}
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs px-1.5 py-0 h-4 ${isActive ? "bg-white/80" : "bg-muted-foreground/20"}`}
                       >
                         {category.count}
                       </Badge>
@@ -309,21 +306,23 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
                     </Button>
 
                     {/* Category switch button for diagnoses/differentials - only visible on hover */}
-                    {(codeDetail.category === 'diagnoses' || codeDetail.category === 'differentials') && codeDetail.type === 'ICD-10' && onChangeCategoryCode && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-1 right-6 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100 hover:text-blue-700"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const newCategory = codeDetail.category === 'diagnoses' ? 'differentials' : 'diagnoses'
-                          onChangeCategoryCode(codeDetail, newCategory)
-                        }}
-                        title={`Change to ${codeDetail.category === 'diagnoses' ? 'Differential' : 'Diagnosis'}`}
-                      >
-                        <ArrowUpDown className="h-3 w-3" />
-                      </Button>
-                    )}
+                    {(codeDetail.category === "diagnoses" || codeDetail.category === "differentials") &&
+                      codeDetail.type === "ICD-10" &&
+                      onChangeCategoryCode && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-1 right-6 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-100 hover:text-blue-700"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const newCategory = codeDetail.category === "diagnoses" ? "differentials" : "diagnoses"
+                            onChangeCategoryCode(codeDetail, newCategory)
+                          }}
+                          title={`Change to ${codeDetail.category === "diagnoses" ? "Differential" : "Diagnosis"}`}
+                        >
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      )}
 
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -335,9 +334,7 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
                             <div className={`text-sm font-mono font-medium ${codeDetail.textColor}`}>
                               {codeDetail.code}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {codeDetail.type}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{codeDetail.type}</div>
                           </div>
                           {/* Circular Confidence Gauge */}
                           <div className="flex-shrink-0">
@@ -347,24 +344,43 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs p-4" side="top">
                         <div className="space-y-2">
-                          <div className="font-medium text-sm">{codeDetail.code} - {codeDetail.description}</div>
+                          <div className="font-medium text-sm">
+                            {codeDetail.code} - {codeDetail.description}
+                          </div>
                           <div className="text-xs space-y-1">
-                            <div><span className="font-medium">Reason:</span> {codeDetail.rationale}</div>
+                            <div>
+                              <span className="font-medium">Reason:</span> {codeDetail.rationale}
+                            </div>
                             {codeDetail.reimbursement !== "N/A (Diagnosis code)" && (
-                              <div><span className="font-medium">Reimbursement:</span> {codeDetail.reimbursement}</div>
+                              <div>
+                                <span className="font-medium">Reimbursement:</span> {codeDetail.reimbursement}
+                              </div>
                             )}
                             {codeDetail.rvu && (
-                              <div><span className="font-medium">RVU:</span> {codeDetail.rvu}</div>
+                              <div>
+                                <span className="font-medium">RVU:</span> {codeDetail.rvu}
+                              </div>
                             )}
-                            <div><span className="font-medium">Billing:</span> {codeDetail.billingConsiderations}</div>
-                            <div><span className="font-medium">Treatment:</span> {codeDetail.treatmentNotes}</div>
-                            <div><span className="font-medium">Documentation:</span> {codeDetail.documentationRequirements}</div>
+                            <div>
+                              <span className="font-medium">Billing:</span> {codeDetail.billingConsiderations}
+                            </div>
+                            <div>
+                              <span className="font-medium">Treatment:</span> {codeDetail.treatmentNotes}
+                            </div>
+                            <div>
+                              <span className="font-medium">Documentation:</span> {codeDetail.documentationRequirements}
+                            </div>
                             <div className="pt-1 border-t">
-                              <span className="font-medium">Confidence:</span> 
-                              <span className={`ml-1 ${
-                                codeDetail.confidence >= 80 ? 'text-green-600' :
-                                codeDetail.confidence >= 60 ? 'text-yellow-600' : 'text-red-600'
-                              }`}>
+                              <span className="font-medium">Confidence:</span>
+                              <span
+                                className={`ml-1 ${
+                                  codeDetail.confidence >= 80
+                                    ? "text-green-600"
+                                    : codeDetail.confidence >= 60
+                                      ? "text-yellow-600"
+                                      : "text-red-600"
+                                }`}
+                              >
                                 {codeDetail.confidence}%
                               </span>
                             </div>
@@ -386,16 +402,18 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Code</AlertDialogTitle>
             <AlertDialogDescription>
-              What would you like to do with code <span className="font-mono font-medium">{selectedCodeToRemove?.code}</span>?
+              What would you like to do with code{" "}
+              <span className="font-mono font-medium">{selectedCodeToRemove?.code}</span>?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="py-4">
             <div className="space-y-3">
               <div className="text-sm">
-                <span className="font-medium">Code:</span> {selectedCodeToRemove?.code} - {selectedCodeToRemove?.description}
+                <span className="font-medium">Code:</span> {selectedCodeToRemove?.code} -{" "}
+                {selectedCodeToRemove?.description}
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="reasoning" className="text-sm font-medium">
                   Reasoning (Optional)
@@ -419,15 +437,12 @@ export function SelectedCodesBar({ selectedCodes, onUpdateCodes, selectedCodesLi
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <Button
               variant="outline"
-              onClick={() => confirmRemoval('return')}
+              onClick={() => confirmRemoval("return")}
               className="hover:bg-blue-50 hover:text-blue-700"
             >
               Return to Suggestions
             </Button>
-            <AlertDialogAction
-              onClick={() => confirmRemoval('clear')}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={() => confirmRemoval("clear")} className="bg-red-600 hover:bg-red-700">
               Remove Completely
             </AlertDialogAction>
           </AlertDialogFooter>

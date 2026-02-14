@@ -6,10 +6,16 @@ import { z } from "zod"
 import { ArtifactType, ComplianceStatus } from "@prisma/client"
 import { env } from "../config/env.js"
 import { prisma } from "../lib/prisma.js"
+import { runWithRls } from "../lib/rls.js"
+import { transactional } from "../lib/transactional.js"
 import { ApiError } from "../middleware/errorHandler.js"
 import type { AuthenticatedRequest } from "../types.js"
 import { sseHub } from "../lib/sseHub.js"
-import { generateSuggestionsOrchestrated, buildSuggestionInputHash, shouldRefreshSuggestions } from "../services/suggestionService.js"
+import {
+  generateSuggestionsOrchestrated,
+  buildSuggestionInputHash,
+  shouldRefreshSuggestions
+} from "../services/suggestionService.js"
 import { generateComplianceIssuesOrchestrated } from "../services/complianceService.js"
 import { persistTraceJson } from "../services/traceService.js"
 import { transcribeAndDiarizeAudio } from "../services/sttService.js"
@@ -18,6 +24,8 @@ import { loadPromptProfileForUser } from "../services/promptBuilderService.js"
 import { writeAuditLog } from "../middleware/audit.js"
 import { requireRole } from "../middleware/auth.js"
 import { ensureDir } from "../utils/fs.js"
+import { deidentifyText } from "../ai/deidentify.js"
+import { asPhiText } from "../phi.js"
 
 const stopEncounterSchema = z.object({
   mode: z.enum(["pause", "stop"]).default("pause")
@@ -94,9 +102,10 @@ const transcriptUpload = multer({
 
 export const encounterRoutes = Router()
 
-async function resolveEncounter(encounterIdentifier: string) {
+async function resolveEncounter(orgId: string, encounterIdentifier: string) {
   return prisma.encounter.findFirst({
     where: {
+      orgId,
       OR: [{ id: encounterIdentifier }, { externalId: encounterIdentifier }]
     },
     include: {
@@ -110,15 +119,20 @@ async function resolveEncounter(encounterIdentifier: string) {
   })
 }
 
-async function getSelectedCodes(encounterId: string): Promise<string[]> {
+async function getSelectedCodes(orgId: string, encounterId: string): Promise<string[]> {
   const latestByCode = new Map<string, string>()
   const selections = await prisma.codeSelection.findMany({
-    where: { encounterId },
+    where: { orgId, encounterId },
     orderBy: { createdAt: "asc" }
   })
 
   for (const selection of selections) {
-    if (selection.action === "KEEP" || selection.action === "ADD_FROM_SUGGESTION" || selection.action === "MOVE_TO_DIAGNOSIS" || selection.action === "MOVE_TO_DIFFERENTIAL") {
+    if (
+      selection.action === "KEEP" ||
+      selection.action === "ADD_FROM_SUGGESTION" ||
+      selection.action === "MOVE_TO_DIAGNOSIS" ||
+      selection.action === "MOVE_TO_DIFFERENTIAL"
+    ) {
       latestByCode.set(selection.code, selection.code)
     }
 
@@ -130,9 +144,9 @@ async function getSelectedCodes(encounterId: string): Promise<string[]> {
   return Array.from(latestByCode.values())
 }
 
-async function buildEncounterTranscriptQuality(encounterId: string) {
+async function buildEncounterTranscriptQuality(orgId: string, encounterId: string) {
   const segments = await prisma.transcriptSegment.findMany({
-    where: { encounterId },
+    where: { orgId, encounterId },
     orderBy: { startMs: "asc" },
     take: 500
   })
@@ -156,7 +170,8 @@ async function resolvePromptProfile(req: AuthenticatedRequest) {
 
 encounterRoutes.get("/:encounterId", async (req, res, next) => {
   try {
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const authReq = req as unknown as AuthenticatedRequest
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter) {
       throw new ApiError(404, "Encounter not found")
     }
@@ -187,34 +202,42 @@ encounterRoutes.get("/:encounterId", async (req, res, next) => {
 encounterRoutes.post("/:encounterId/start", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
 
     if (!encounter) {
       throw new ApiError(404, "Encounter not found")
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const nextEncounter = await tx.encounter.update({
-        where: { id: encounter.id },
+    const updated = await transactional(async (tx) => {
+      const updatedEncounter = await tx.encounter.updateMany({
+        where: { id: encounter.id, orgId: authReq.user.orgId },
         data: {
           status: "ACTIVE",
           startedAt: encounter.startedAt ?? new Date(),
           draftUnhiddenAt: encounter.draftUnhiddenAt ?? new Date()
         }
       })
+      if (updatedEncounter.count !== 1) {
+        throw new ApiError(404, "Encounter not found")
+      }
 
       if (encounter.note) {
-        await tx.note.update({
-          where: { id: encounter.note.id },
+        const updatedNote = await tx.note.updateMany({
+          where: { id: encounter.note.id, orgId: authReq.user.orgId },
           data: {
             status: "DRAFT_ACTIVE",
             visibility: "VISIBLE",
             updatedById: authReq.user.id
           }
         })
+        if (updatedNote.count !== 1) {
+          throw new ApiError(404, "Encounter note not found")
+        }
       }
 
-      return nextEncounter
+      return tx.encounter.findFirstOrThrow({
+        where: { id: encounter.id, orgId: authReq.user.orgId }
+      })
     })
 
     sseHub.publish(encounter.externalId, {
@@ -243,20 +266,29 @@ encounterRoutes.post("/:encounterId/start", requireRole(["ADMIN", "CLINICIAN"]),
 
 encounterRoutes.post("/:encounterId/stop", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest
     const payload = stopEncounterSchema.parse(req.body)
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
 
     if (!encounter) {
       throw new ApiError(404, "Encounter not found")
     }
 
     const nextStatus = payload.mode === "pause" ? "PAUSED" : "STOPPED"
-    const updated = await prisma.encounter.update({
-      where: { id: encounter.id },
+    const updatedCount = await prisma.encounter.updateMany({
+      where: { id: encounter.id, orgId: authReq.user.orgId },
       data: {
         status: nextStatus,
         stoppedAt: new Date()
       }
+    })
+
+    if (updatedCount.count !== 1) {
+      throw new ApiError(404, "Encounter not found")
+    }
+
+    const updated = await prisma.encounter.findFirstOrThrow({
+      where: { id: encounter.id, orgId: authReq.user.orgId }
     })
 
     sseHub.publish(encounter.externalId, {
@@ -274,14 +306,14 @@ encounterRoutes.post("/:encounterId/note", requireRole(["ADMIN", "CLINICIAN"]), 
   try {
     const authReq = req as unknown as AuthenticatedRequest
     const payload = noteUpdateSchema.parse(req.body)
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
 
     if (!encounter || !encounter.note) {
       throw new ApiError(404, "Encounter or note not found")
     }
 
-    const note = await prisma.note.update({
-      where: { id: encounter.note.id },
+    const updatedNoteCount = await prisma.note.updateMany({
+      where: { id: encounter.note.id, orgId: authReq.user.orgId },
       data: {
         content: payload.content,
         patientSummary: payload.patientSummary ?? encounter.note.patientSummary,
@@ -289,13 +321,22 @@ encounterRoutes.post("/:encounterId/note", requireRole(["ADMIN", "CLINICIAN"]), 
       }
     })
 
+    if (updatedNoteCount.count !== 1) {
+      throw new ApiError(404, "Note not found")
+    }
+
+    const note = await prisma.note.findFirstOrThrow({
+      where: { id: encounter.note.id, orgId: authReq.user.orgId }
+    })
+
     const latestVersion = await prisma.noteVersion.findFirst({
-      where: { noteId: note.id },
+      where: { orgId: authReq.user.orgId, noteId: note.id },
       orderBy: { versionNumber: "desc" }
     })
 
     await prisma.noteVersion.create({
       data: {
+        orgId: authReq.user.orgId,
         noteId: note.id,
         versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
         source: "autosave",
@@ -319,12 +360,26 @@ encounterRoutes.post("/:encounterId/note", requireRole(["ADMIN", "CLINICIAN"]), 
   }
 })
 
-encounterRoutes.get("/:encounterId/transcript/stream", async (req, res, next) => {
+encounterRoutes.get("/:encounterId/transcript/stream", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
-    const encounter = await resolveEncounter(req.params.encounterId)
-    if (!encounter) {
-      throw new ApiError(404, "Encounter not found")
-    }
+    const authReq = req as unknown as AuthenticatedRequest
+    const { encounter, latestSegments } = await runWithRls(authReq.user.orgId, async () => {
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
+      if (!encounter) {
+        throw new ApiError(404, "Encounter not found")
+      }
+
+      const latestSegments = await prisma.transcriptSegment.findMany({
+        where: { orgId: authReq.user.orgId, encounterId: encounter.id },
+        orderBy: { createdAt: "asc" },
+        take: 200
+      })
+
+      return {
+        encounter,
+        latestSegments
+      }
+    })
 
     res.setHeader("Content-Type", "text/event-stream")
     res.setHeader("Cache-Control", "no-cache")
@@ -338,12 +393,6 @@ encounterRoutes.get("/:encounterId/transcript/stream", async (req, res, next) =>
     const clientId = queryClientId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     sseHub.subscribe(encounter.externalId, clientId, res)
 
-    const latestSegments = await prisma.transcriptSegment.findMany({
-      where: { encounterId: encounter.id },
-      orderBy: { createdAt: "asc" },
-      take: 200
-    })
-
     res.write(`event: connected\n`)
     res.write(
       `data: ${JSON.stringify({
@@ -356,42 +405,47 @@ encounterRoutes.get("/:encounterId/transcript/stream", async (req, res, next) =>
   }
 })
 
-encounterRoutes.post("/:encounterId/transcript/stream-metrics", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
-  try {
-    const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
-    if (!encounter) {
-      throw new ApiError(404, "Encounter not found")
-    }
-
-    const payload = streamMetricSchema.parse(req.body)
-    await writeAuditLog({
-      req,
-      res,
-      action: "sse_metric",
-      entity: "encounter",
-      entityId: encounter.id,
-      encounterId: encounter.id,
-      details: {
-        actorRole: authReq.user.role,
-        stream: payload
+encounterRoutes.post(
+  "/:encounterId/transcript/stream-metrics",
+  requireRole(["ADMIN", "CLINICIAN"]),
+  async (req, res, next) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
+      if (!encounter) {
+        throw new ApiError(404, "Encounter not found")
       }
-    })
 
-    res.status(202).json({ accepted: true })
-  } catch (error) {
-    next(error)
+      const payload = streamMetricSchema.parse(req.body)
+      await writeAuditLog({
+        req,
+        res,
+        action: "sse_metric",
+        entity: "encounter",
+        entityId: encounter.id,
+        encounterId: encounter.id,
+        details: {
+          actorRole: authReq.user.role,
+          stream: payload
+        }
+      })
+
+      res.status(202).json({ accepted: true })
+    } catch (error) {
+      next(error)
+    }
   }
-})
+)
 
 encounterRoutes.get("/:encounterId/transcript/quality", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const authReq = req as unknown as AuthenticatedRequest
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter) {
       throw new ApiError(404, "Encounter not found")
     }
 
-    const report = await buildEncounterTranscriptQuality(encounter.id)
+    const report = await buildEncounterTranscriptQuality(authReq.user.orgId, encounter.id)
     res.status(200).json({
       encounterId: encounter.externalId,
       report
@@ -410,7 +464,7 @@ encounterRoutes.post(
 
     try {
       const authReq = req as unknown as AuthenticatedRequest
-      const encounter = await resolveEncounter(req.params.encounterId)
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
       if (!encounter) {
         throw new ApiError(404, "Encounter not found")
       }
@@ -422,7 +476,7 @@ encounterRoutes.post(
       uploadedPath = req.file.path
       const payload = transcriptAudioMetaSchema.parse(req.body ?? {})
       const latestSegment = await prisma.transcriptSegment.findFirst({
-        where: { encounterId: encounter.id },
+        where: { orgId: authReq.user.orgId, encounterId: encounter.id },
         orderBy: { endMs: "desc" }
       })
       const promptProfile = await resolvePromptProfile(authReq)
@@ -448,21 +502,24 @@ encounterRoutes.post(
         return
       }
 
-      const createdSegments = await prisma.$transaction(
-        sttResult.segments.map((segment) =>
-          prisma.transcriptSegment.create({
-            data: {
-              encounterId: encounter.id,
-              speaker: segment.speaker,
-              speakerLabel: segment.speakerLabel,
-              text: segment.text,
-              startMs: segment.startMs,
-              endMs: segment.endMs,
-              confidence: segment.confidence
-            }
-          })
+      const createdSegments = await transactional(async (tx) => {
+        return Promise.all(
+          sttResult.segments.map((segment) =>
+            tx.transcriptSegment.create({
+              data: {
+                orgId: authReq.user.orgId,
+                encounterId: encounter.id,
+                speaker: segment.speaker,
+                speakerLabel: segment.speakerLabel,
+                text: segment.text,
+                startMs: segment.startMs,
+                endMs: segment.endMs,
+                confidence: segment.confidence
+              }
+            })
+          )
         )
-      )
+      })
 
       for (const segment of createdSegments) {
         sseHub.publish(encounter.externalId, {
@@ -496,7 +553,7 @@ encounterRoutes.post(
         }
       })
 
-      const qualityReport = await buildEncounterTranscriptQuality(encounter.id)
+      const qualityReport = await buildEncounterTranscriptQuality(authReq.user.orgId, encounter.id)
       if (qualityReport.needsReview) {
         sseHub.publish(encounter.externalId, {
           type: "transcript.quality",
@@ -524,44 +581,50 @@ encounterRoutes.post(
   }
 )
 
-encounterRoutes.post("/:encounterId/transcript/segments", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
-  try {
-    const encounter = await resolveEncounter(req.params.encounterId)
-    if (!encounter) {
-      throw new ApiError(404, "Encounter not found")
+encounterRoutes.post(
+  "/:encounterId/transcript/segments",
+  requireRole(["ADMIN", "CLINICIAN"]),
+  async (req, res, next) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
+      if (!encounter) {
+        throw new ApiError(404, "Encounter not found")
+      }
+
+      const payload = transcriptSegmentSchema.parse(req.body)
+
+      const segment = await prisma.transcriptSegment.create({
+        data: {
+          orgId: authReq.user.orgId,
+          encounterId: encounter.id,
+          speaker: payload.speaker,
+          speakerLabel: payload.speakerLabel,
+          text: payload.text,
+          startMs: payload.startMs,
+          endMs: payload.endMs,
+          confidence: payload.confidence
+        }
+      })
+
+      sseHub.publish(encounter.externalId, {
+        type: "transcript.segment",
+        data: {
+          id: segment.id,
+          speaker: segment.speaker,
+          text: segment.text,
+          startMs: segment.startMs,
+          endMs: segment.endMs,
+          createdAt: segment.createdAt
+        }
+      })
+
+      res.status(201).json({ segment })
+    } catch (error) {
+      next(error)
     }
-
-    const payload = transcriptSegmentSchema.parse(req.body)
-
-    const segment = await prisma.transcriptSegment.create({
-      data: {
-        encounterId: encounter.id,
-        speaker: payload.speaker,
-        speakerLabel: payload.speakerLabel,
-        text: payload.text,
-        startMs: payload.startMs,
-        endMs: payload.endMs,
-        confidence: payload.confidence
-      }
-    })
-
-    sseHub.publish(encounter.externalId, {
-      type: "transcript.segment",
-      data: {
-        id: segment.id,
-        speaker: segment.speaker,
-        text: segment.text,
-        startMs: segment.startMs,
-        endMs: segment.endMs,
-        createdAt: segment.createdAt
-      }
-    })
-
-    res.status(201).json({ segment })
-  } catch (error) {
-    next(error)
   }
-})
+)
 
 encounterRoutes.post(
   "/:encounterId/transcript/segments/:segmentId/correct",
@@ -569,7 +632,7 @@ encounterRoutes.post(
   async (req, res, next) => {
     try {
       const authReq = req as unknown as AuthenticatedRequest
-      const encounter = await resolveEncounter(req.params.encounterId)
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
       if (!encounter) {
         throw new ApiError(404, "Encounter not found")
       }
@@ -577,7 +640,8 @@ encounterRoutes.post(
       const existing = await prisma.transcriptSegment.findFirst({
         where: {
           id: req.params.segmentId,
-          encounterId: encounter.id
+          encounterId: encounter.id,
+          orgId: authReq.user.orgId
         }
       })
 
@@ -590,13 +654,20 @@ encounterRoutes.post(
         throw new ApiError(400, "At least one transcript field must be provided for correction")
       }
 
-      const updated = await prisma.transcriptSegment.update({
-        where: { id: existing.id },
+      const updatedCount = await prisma.transcriptSegment.updateMany({
+        where: { id: existing.id, orgId: authReq.user.orgId },
         data: {
           speaker: payload.speaker ?? existing.speaker,
           speakerLabel: payload.speakerLabel ?? existing.speakerLabel,
           text: payload.text ?? existing.text
         }
+      })
+      if (updatedCount.count !== 1) {
+        throw new ApiError(404, "Transcript segment not found")
+      }
+
+      const updated = await prisma.transcriptSegment.findFirstOrThrow({
+        where: { id: existing.id, orgId: authReq.user.orgId }
       })
 
       sseHub.publish(encounter.externalId, {
@@ -636,7 +707,7 @@ encounterRoutes.post(
         }
       })
 
-      const qualityReport = await buildEncounterTranscriptQuality(encounter.id)
+      const qualityReport = await buildEncounterTranscriptQuality(authReq.user.orgId, encounter.id)
       res.status(200).json({
         segment: updated,
         qualityReport
@@ -647,149 +718,162 @@ encounterRoutes.post(
   }
 )
 
-encounterRoutes.post("/:encounterId/suggestions/refresh", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
-  try {
-    const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
-    if (!encounter || !encounter.note) {
-      throw new ApiError(404, "Encounter or note not found")
-    }
-
-    const payload = refreshSuggestionsSchema.parse(req.body)
-    const shouldRun = payload.trigger === "manual" || shouldRefreshSuggestions(payload)
-
-    if (!shouldRun) {
-      res.status(200).json({ skipped: true, reason: "Delta thresholds not met" })
-      return
-    }
-
-    const transcriptSegments = await prisma.transcriptSegment.findMany({
-      where: { encounterId: encounter.id },
-      orderBy: { createdAt: "desc" },
-      take: 100
-    })
-
-    const transcriptText = transcriptSegments
-      .reverse()
-      .map((segment) => `${segment.speaker}: ${segment.text}`)
-      .join("\n")
-
-    const chartContext = encounter.chartAssets[0]?.extractedJson as Record<string, unknown> | undefined
-
-    const suggestionInput = {
-      noteContent: payload.noteContent || encounter.note.content,
-      transcriptText,
-      chartContext
-    }
-    const promptProfile = await resolvePromptProfile(authReq)
-
-    const generation = await prisma.suggestionGeneration.create({
-      data: {
-        encounterId: encounter.id,
-        trigger: payload.trigger,
-        textDelta: payload.noteDeltaChars,
-        transcriptDelta: payload.transcriptDeltaChars,
-        inputHash: buildSuggestionInputHash(suggestionInput),
-        createdById: authReq.user.id
+encounterRoutes.post(
+  "/:encounterId/suggestions/refresh",
+  requireRole(["ADMIN", "CLINICIAN"]),
+  async (req, res, next) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
+      if (!encounter || !encounter.note) {
+        throw new ApiError(404, "Encounter or note not found")
       }
-    })
 
-    const suggestionResult = await generateSuggestionsOrchestrated(suggestionInput, promptProfile)
+      const payload = refreshSuggestionsSchema.parse(req.body)
+      const shouldRun = payload.trigger === "manual" || shouldRefreshSuggestions(payload)
 
-    const traceArtifact = await persistTraceJson({
-      runId: generation.id,
-      fileName: "suggestions-trace.json",
-      payload: {
-        task: "suggestions",
-        encounterId: encounter.externalId,
-        generatedAt: new Date().toISOString(),
-        trace: suggestionResult.trace,
-        promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId,
-        guardrailWarnings: suggestionResult.guardrailWarnings ?? []
+      if (!shouldRun) {
+        res.status(200).json({ skipped: true, reason: "Delta thresholds not met" })
+        return
       }
-    })
 
-    const traceRecord = await prisma.exportArtifact.create({
-      data: {
-        encounterId: encounter.id,
-        noteId: encounter.note.id,
-        type: ArtifactType.TRACE_JSON,
-        filePath: traceArtifact.filePath,
-        mimeType: "application/json",
-        fileName: traceArtifact.fileName,
-        sizeBytes: traceArtifact.sizeBytes,
-        createdById: authReq.user.id
-      }
-    })
+      const transcriptSegments = await prisma.transcriptSegment.findMany({
+        where: { orgId: authReq.user.orgId, encounterId: encounter.id },
+        orderBy: { createdAt: "desc" },
+        take: 100
+      })
 
-    const createdSuggestions = await prisma.$transaction(
-      suggestionResult.output.map((suggestion) =>
-        prisma.codeSuggestion.create({
-          data: {
-            encounterId: encounter.id,
-            generationId: generation.id,
-            code: suggestion.code,
-            codeType: suggestion.codeType,
-            category: suggestion.category,
-            title: suggestion.title,
-            description: suggestion.description,
-            rationale: suggestion.rationale,
-            confidence: suggestion.confidence,
-            evidence: suggestion.evidence as never,
-            status: "SUGGESTED"
-          }
-        })
+      const transcriptTextPhi = asPhiText(
+        transcriptSegments
+          .reverse()
+          .map((segment) => `${segment.speaker}: ${segment.text}`)
+          .join("\n")
       )
-    )
+      // Transcript text is PHI. Never send raw transcript strings into any AI gateway payloads.
+      const transcriptText = deidentifyText(transcriptTextPhi).text
 
-    sseHub.publish(encounter.externalId, {
-      type: "suggestions.refresh",
-      data: {
-        generationId: generation.id,
-        count: createdSuggestions.length,
-        traceId: suggestionResult.trace.traceId,
-        promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId
+      const chartContext = encounter.chartAssets[0]?.extractedJson as Record<string, unknown> | undefined
+
+      const suggestionInput = {
+        noteContent: payload.noteContent || encounter.note.content,
+        transcriptText,
+        chartContext
       }
-    })
+      const promptProfile = await resolvePromptProfile(authReq)
 
-    await writeAuditLog({
-      req,
-      res,
-      action: "suggestions_refresh",
-      entity: "encounter",
-      entityId: encounter.id,
-      encounterId: encounter.id,
-      details: {
+      const generation = await prisma.suggestionGeneration.create({
+        data: {
+          orgId: authReq.user.orgId,
+          encounterId: encounter.id,
+          trigger: payload.trigger,
+          textDelta: payload.noteDeltaChars,
+          transcriptDelta: payload.transcriptDeltaChars,
+          inputHash: buildSuggestionInputHash(suggestionInput),
+          createdById: authReq.user.id
+        }
+      })
+
+      const suggestionResult = await generateSuggestionsOrchestrated(suggestionInput, promptProfile)
+
+      const traceArtifact = await persistTraceJson({
+        runId: generation.id,
+        fileName: "suggestions-trace.json",
+        payload: {
+          task: "suggestions",
+          encounterId: encounter.externalId,
+          generatedAt: new Date().toISOString(),
+          trace: suggestionResult.trace,
+          promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId,
+          guardrailWarnings: suggestionResult.guardrailWarnings ?? []
+        }
+      })
+
+      const traceRecord = await prisma.exportArtifact.create({
+        data: {
+          orgId: authReq.user.orgId,
+          encounterId: encounter.id,
+          noteId: encounter.note.id,
+          type: ArtifactType.TRACE_JSON,
+          filePath: traceArtifact.filePath,
+          mimeType: "application/json",
+          fileName: traceArtifact.fileName,
+          sizeBytes: traceArtifact.sizeBytes,
+          createdById: authReq.user.id
+        }
+      })
+
+      const createdSuggestions = await transactional(async (tx) => {
+        return Promise.all(
+          suggestionResult.output.map((suggestion) =>
+            tx.codeSuggestion.create({
+              data: {
+                orgId: authReq.user.orgId,
+                encounterId: encounter.id,
+                generationId: generation.id,
+                code: suggestion.code,
+                codeType: suggestion.codeType,
+                category: suggestion.category,
+                title: suggestion.title,
+                description: suggestion.description,
+                rationale: suggestion.rationale,
+                confidence: suggestion.confidence,
+                evidence: suggestion.evidence as never,
+                status: "SUGGESTED"
+              }
+            })
+          )
+        )
+      })
+
+      sseHub.publish(encounter.externalId, {
+        type: "suggestions.refresh",
+        data: {
+          generationId: generation.id,
+          count: createdSuggestions.length,
+          traceId: suggestionResult.trace.traceId,
+          promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId
+        }
+      })
+
+      await writeAuditLog({
+        req,
+        res,
+        action: "suggestions_refresh",
+        entity: "encounter",
+        entityId: encounter.id,
+        encounterId: encounter.id,
+        details: {
+          generationId: generation.id,
+          traceId: suggestionResult.trace.traceId,
+          promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId,
+          traceArtifactId: traceRecord.id,
+          provider: suggestionResult.trace.provider,
+          guardrailWarnings: suggestionResult.guardrailWarnings ?? []
+        }
+      })
+
+      res.status(200).json({
         generationId: generation.id,
+        suggestions: createdSuggestions,
         traceId: suggestionResult.trace.traceId,
         promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId,
-        traceArtifactId: traceRecord.id,
-        provider: suggestionResult.trace.provider,
         guardrailWarnings: suggestionResult.guardrailWarnings ?? []
-      }
-    })
-
-    res.status(200).json({
-      generationId: generation.id,
-      suggestions: createdSuggestions,
-      traceId: suggestionResult.trace.traceId,
-      promptVersionId: suggestionResult.trace.promptVersionId ?? suggestionResult.prompt.versionId,
-      guardrailWarnings: suggestionResult.guardrailWarnings ?? []
-    })
-  } catch (error) {
-    next(error)
+      })
+    } catch (error) {
+      next(error)
+    }
   }
-})
+)
 
 encounterRoutes.get("/:encounterId/compliance", async (req, res, next) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter || !encounter.note) {
       throw new ApiError(404, "Encounter or note not found")
     }
 
-    const selectedCodes = await getSelectedCodes(encounter.id)
+    const selectedCodes = await getSelectedCodes(authReq.user.orgId, encounter.id)
     const complianceInput = {
       noteContent: encounter.note.content,
       selectedCodes
@@ -813,13 +897,15 @@ encounterRoutes.get("/:encounterId/compliance", async (req, res, next) => {
 
     const traceRecord = await prisma.exportArtifact.create({
       data: {
+        orgId: authReq.user.orgId,
         encounterId: encounter.id,
         noteId: encounter.note.id,
         type: ArtifactType.TRACE_JSON,
         filePath: traceArtifact.filePath,
         mimeType: "application/json",
         fileName: traceArtifact.fileName,
-        sizeBytes: traceArtifact.sizeBytes
+        sizeBytes: traceArtifact.sizeBytes,
+        createdById: authReq.user.id
       }
     })
 
@@ -828,7 +914,8 @@ encounterRoutes.get("/:encounterId/compliance", async (req, res, next) => {
     for (const issue of generated.output) {
       const upserted = await prisma.complianceIssue.upsert({
         where: {
-          encounterId_fingerprint: {
+          orgId_encounterId_fingerprint: {
+            orgId: authReq.user.orgId,
             encounterId: encounter.id,
             fingerprint: issue.fingerprint
           }
@@ -843,6 +930,7 @@ encounterRoutes.get("/:encounterId/compliance", async (req, res, next) => {
           status: "ACTIVE"
         },
         create: {
+          orgId: authReq.user.orgId,
           encounterId: encounter.id,
           severity: issue.severity,
           status: "ACTIVE",
@@ -860,6 +948,7 @@ encounterRoutes.get("/:encounterId/compliance", async (req, res, next) => {
 
     const issues = await prisma.complianceIssue.findMany({
       where: {
+        orgId: authReq.user.orgId,
         encounterId: encounter.id
       },
       orderBy: [{ severity: "asc" }, { createdAt: "desc" }]
@@ -893,36 +982,47 @@ encounterRoutes.get("/:encounterId/compliance", async (req, res, next) => {
   }
 })
 
-encounterRoutes.post("/:encounterId/compliance/:issueId/status", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
-  try {
-    const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
-    if (!encounter) {
-      throw new ApiError(404, "Encounter not found")
+encounterRoutes.post(
+  "/:encounterId/compliance/:issueId/status",
+  requireRole(["ADMIN", "CLINICIAN"]),
+  async (req, res, next) => {
+    try {
+      const authReq = req as unknown as AuthenticatedRequest
+      const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
+      if (!encounter) {
+        throw new ApiError(404, "Encounter not found")
+      }
+
+      const payload = complianceStatusSchema.parse(req.body)
+
+      const updatedCount = await prisma.complianceIssue.updateMany({
+        where: { id: req.params.issueId, orgId: authReq.user.orgId, encounterId: encounter.id },
+        data: {
+          status: payload.status as ComplianceStatus,
+          actorId: authReq.user.id,
+          dismissedAt: payload.status === "DISMISSED" ? new Date() : null,
+          resolvedAt: payload.status === "RESOLVED" ? new Date() : null
+        }
+      })
+      if (updatedCount.count !== 1) {
+        throw new ApiError(404, "Compliance issue not found")
+      }
+
+      const updated = await prisma.complianceIssue.findFirstOrThrow({
+        where: { id: req.params.issueId, orgId: authReq.user.orgId, encounterId: encounter.id }
+      })
+
+      sseHub.publish(encounter.externalId, {
+        type: "compliance.updated",
+        data: {
+          issueId: updated.id,
+          status: updated.status
+        }
+      })
+
+      res.status(200).json({ issue: updated })
+    } catch (error) {
+      next(error)
     }
-
-    const payload = complianceStatusSchema.parse(req.body)
-
-    const updated = await prisma.complianceIssue.update({
-      where: { id: req.params.issueId },
-      data: {
-        status: payload.status as ComplianceStatus,
-        actorId: authReq.user.id,
-        dismissedAt: payload.status === "DISMISSED" ? new Date() : null,
-        resolvedAt: payload.status === "RESOLVED" ? new Date() : null
-      }
-    })
-
-    sseHub.publish(encounter.externalId, {
-      type: "compliance.updated",
-      data: {
-        issueId: updated.id,
-        status: updated.status
-      }
-    })
-
-    res.status(200).json({ issue: updated })
-  } catch (error) {
-    next(error)
   }
-})
+)

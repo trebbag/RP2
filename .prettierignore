@@ -1,0 +1,9 @@
+node_modules/
+dist/
+server/dist/
+server/storage/
+server/server/storage/
+.tmp-tests/
+server/.tmp-tests/
+coverage/
+**/*.min.js

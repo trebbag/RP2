@@ -1,11 +1,13 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import supertest from "supertest"
+import { clearTablesInOrder, createAdminPrisma, resolveIntegrationAdminDbUrl } from "./helpers/adminDb.js"
 
 const shouldRunSoak = process.env.RP2_RUN_SOAK === "1"
 const integrationDbUrl = process.env.RP2_INTEGRATION_DB_URL || process.env.DATABASE_URL
+const integrationAdminDbUrl = resolveIntegrationAdminDbUrl()
 
-if (!shouldRunSoak || !integrationDbUrl) {
+if (!shouldRunSoak || !integrationDbUrl || !integrationAdminDbUrl) {
   test("soak tests (skipped)", { skip: true }, () => {
     assert.ok(true)
   })
@@ -21,35 +23,14 @@ if (!shouldRunSoak || !integrationDbUrl) {
     process.env.DISPATCH_BACKOFF_MS = "1"
 
     const { createApp } = await import("../src/app.js")
-    const { prisma } = await import("../src/lib/prisma.js")
+    const adminPrisma = createAdminPrisma()
     const { enqueueDispatchJob, processDueDispatchJobs } = await import("../src/services/dispatchService.js")
 
     const app = createApp()
     const request = supertest(app)
 
-    await prisma.$connect()
-
-    const clearTablesInOrder = async () => {
-      await prisma.auditLog.deleteMany({})
-      await prisma.exportArtifact.deleteMany({})
-      await prisma.wizardStepState.deleteMany({})
-      await prisma.wizardRun.deleteMany({})
-      await prisma.complianceIssue.deleteMany({})
-      await prisma.codeSelection.deleteMany({})
-      await prisma.codeSuggestion.deleteMany({})
-      await prisma.suggestionGeneration.deleteMany({})
-      await prisma.transcriptSegment.deleteMany({})
-      await prisma.noteVersion.deleteMany({})
-      await prisma.note.deleteMany({})
-      await prisma.dispatchJob.deleteMany({})
-      await prisma.encounter.deleteMany({})
-      await prisma.chartAsset.deleteMany({})
-      await prisma.appointment.deleteMany({})
-      await prisma.patient.deleteMany({})
-      await prisma.user.deleteMany({})
-    }
-
-    await clearTablesInOrder()
+    await adminPrisma.$connect()
+    await clearTablesInOrder(adminPrisma)
 
     const login = await request.post("/api/auth/dev-login").send({
       email: "soak.clinician@revenuepilot.local",
@@ -58,6 +39,7 @@ if (!shouldRunSoak || !integrationDbUrl) {
     })
     assert.equal(login.status, 200)
     const auth = { Authorization: `Bearer ${login.body.token}` }
+    const orgId = login.body.user.orgId as string
 
     const createdAppointment = await request
       .post("/api/appointments")
@@ -78,8 +60,9 @@ if (!shouldRunSoak || !integrationDbUrl) {
     assert.equal(createdAppointment.status, 201)
 
     const encounterId = createdAppointment.body.appointment.encounterId as string
-    const encounter = await prisma.encounter.findFirst({
+    const encounter = await adminPrisma.encounter.findFirst({
       where: {
+        orgId,
         OR: [{ externalId: encounterId }, { id: encounterId }]
       },
       include: { note: true, patient: true, provider: true }
@@ -89,6 +72,7 @@ if (!shouldRunSoak || !integrationDbUrl) {
 
     // Long-session transcript load simulation: 1,000 segments.
     const transcriptRows = Array.from({ length: 1000 }).map((_, index) => ({
+      orgId,
       encounterId: encounter!.id,
       speaker: index % 2 === 0 ? "Doctor" : "Patient",
       text: `Soak transcript line ${index + 1}`,
@@ -97,7 +81,7 @@ if (!shouldRunSoak || !integrationDbUrl) {
       confidence: 0.85
     }))
 
-    await prisma.transcriptSegment.createMany({
+    await adminPrisma.transcriptSegment.createMany({
       data: transcriptRows
     })
 
@@ -124,6 +108,7 @@ if (!shouldRunSoak || !integrationDbUrl) {
 
     for (let index = 0; index < 15; index += 1) {
       await enqueueDispatchJob({
+        orgId,
         encounterId: encounter!.id,
         noteId: encounter!.note!.id,
         payload
@@ -131,22 +116,23 @@ if (!shouldRunSoak || !integrationDbUrl) {
     }
 
     for (let cycle = 0; cycle < 6; cycle += 1) {
-      await processDueDispatchJobs(100)
+      await processDueDispatchJobs(100, orgId)
       await new Promise((resolve) => setTimeout(resolve, 5))
-      await prisma.dispatchJob.updateMany({
-        where: { status: "RETRYING" },
+      await adminPrisma.dispatchJob.updateMany({
+        where: { status: "RETRYING", orgId },
         data: { nextRetryAt: new Date(Date.now() - 1000) }
       })
     }
 
-    const totals = await prisma.dispatchJob.groupBy({
+    const totals = await adminPrisma.dispatchJob.groupBy({
+      where: { orgId },
       by: ["status"],
       _count: { _all: true }
     })
     const deadLetterCount = totals.find((row) => row.status === "DEAD_LETTER")?._count._all ?? 0
     assert.ok(deadLetterCount >= 10)
 
-    await clearTablesInOrder()
-    await prisma.$disconnect()
+    await clearTablesInOrder(adminPrisma)
+    await adminPrisma.$disconnect()
   })
 }

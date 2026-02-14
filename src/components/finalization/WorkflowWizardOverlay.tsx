@@ -10,7 +10,12 @@ interface WorkflowWizardOverlayProps {
   encounterId?: string
 }
 
-export function WorkflowWizardOverlay({ isOpen, onClose, initialNoteContent, encounterId }: WorkflowWizardOverlayProps) {
+export function WorkflowWizardOverlay({
+  isOpen,
+  onClose,
+  initialNoteContent,
+  encounterId
+}: WorkflowWizardOverlayProps) {
   useEffect(() => {
     if (!isOpen) return
     const previousOverflow = document.body.style.overflow

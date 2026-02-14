@@ -5,7 +5,8 @@ export function signAuthToken(user) {
         sub: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        orgId: user.orgId
     }, env.JWT_SECRET, { expiresIn: `${env.SESSION_TTL_HOURS}h` });
 }
 function parseCookieValue(cookieHeader, key) {
@@ -44,11 +45,16 @@ export function authenticate(req, res, next) {
     }
     try {
         const payload = jwt.verify(token, env.JWT_SECRET);
+        if (!payload.orgId) {
+            res.status(401).json({ error: "Invalid or expired token" });
+            return;
+        }
         req.user = {
             id: payload.sub,
             email: payload.email,
             name: payload.name,
-            role: payload.role
+            role: payload.role,
+            orgId: payload.orgId
         };
         next();
     }

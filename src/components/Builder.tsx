@@ -103,9 +103,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
   const appointmentTemplates = propAppointments || []
 
   const setAppointmentTemplates = (
-    next:
-      | AppointmentTemplate[]
-      | ((prev: AppointmentTemplate[]) => AppointmentTemplate[])
+    next: AppointmentTemplate[] | ((prev: AppointmentTemplate[]) => AppointmentTemplate[])
   ) => {
     const updatedAppointments =
       typeof next === "function"
@@ -142,7 +140,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
 
   // Filter appointments based on current filters and view mode
   const filteredAppointments = useMemo(() => {
-    return appointmentTemplates.filter(apt => {
+    return appointmentTemplates.filter((apt) => {
       const matchesProvider = selectedProvider === "All Providers" || apt.provider === selectedProvider
 
       const matchesSearch =
@@ -275,7 +273,9 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
   const handleSaveAppointment = () => {
     if (editingAppointment) {
       // Update existing appointment
-      setAppointmentTemplates(prev => prev.map(apt => (apt.id === editingAppointment.id ? editingAppointment : apt)))
+      setAppointmentTemplates((prev) =>
+        prev.map((apt) => (apt.id === editingAppointment.id ? editingAppointment : apt))
+      )
       setEditingAppointment(null)
     } else {
       // Create new appointment
@@ -297,7 +297,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
         status: "Scheduled"
       }
 
-      setAppointmentTemplates(prev => [...prev, appointment])
+      setAppointmentTemplates((prev) => [...prev, appointment])
       setNewAppointment({
         patientName: "",
         patientPhone: "",
@@ -328,7 +328,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
   }
 
   const handleDeleteAppointment = (appointmentId: string) => {
-    setAppointmentTemplates(prev => prev.filter(apt => apt.id !== appointmentId))
+    setAppointmentTemplates((prev) => prev.filter((apt) => apt.id !== appointmentId))
   }
 
   const handleDuplicateAppointment = (appointment: AppointmentTemplate) => {
@@ -339,12 +339,12 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
       patientName: `${appointment.patientName} (Copy)`,
       appointmentTime: new Date(new Date(appointment.appointmentTime).getTime() + 60 * 60 * 1000).toISOString()
     }
-    setAppointmentTemplates(prev => [...prev, newAppointment])
+    setAppointmentTemplates((prev) => [...prev, newAppointment])
   }
 
   const handleChartUpload = (appointmentId: string, files: string[]) => {
-    setAppointmentTemplates(prev =>
-      prev.map(apt =>
+    setAppointmentTemplates((prev) =>
+      prev.map((apt) =>
         apt.id === appointmentId
           ? { ...apt, hasChart: files.length > 0, chartFiles: files, fileUpToDate: files.length > 0 }
           : apt
@@ -381,7 +381,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
 
   const getAppointmentsForDate = (date: Date) => {
     const dateStr = date.toDateString()
-    return filteredAppointments.filter(apt => {
+    return filteredAppointments.filter((apt) => {
       const aptDate = new Date(apt.appointmentTime)
       return aptDate.toDateString() === dateStr
     })
@@ -389,7 +389,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
 
   const getAppointmentsForTimeSlot = (date: Date, timeSlot: string) => {
     const [hour, minute] = timeSlot.split(":").map(Number)
-    return getAppointmentsForDate(date).filter(apt => {
+    return getAppointmentsForDate(date).filter((apt) => {
       const aptDate = new Date(apt.appointmentTime)
       const aptHour = aptDate.getHours()
       const aptMinute = aptDate.getMinutes()
@@ -400,7 +400,13 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
   const isDialogOpen = showNewAppointmentDialog || editingAppointment !== null
 
   // Appointment Card Component
-  const AppointmentCard = ({ appointment, compact = false }: { appointment: AppointmentTemplate; compact?: boolean }) => (
+  const AppointmentCard = ({
+    appointment,
+    compact = false
+  }: {
+    appointment: AppointmentTemplate
+    compact?: boolean
+  }) => (
     <Card
       className={`hover:shadow-lg transition-all duration-300 cursor-pointer bg-white border-2 border-stone-100/50 hover:border-stone-200/70 shadow-md hover:bg-stone-50/30 border-l-4 ${getPriorityColor(appointment.priority)} ${
         compact ? "p-2" : ""
@@ -413,7 +419,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
               <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 font-medium text-xs">
                 {appointment.patientName
                   .split(" ")
-                  .map(n => n[0])
+                  .map((n) => n[0])
                   .join("")}
               </AvatarFallback>
             </Avatar>
@@ -430,13 +436,19 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
             <h3 className={`font-semibold text-foreground ${compact ? "text-sm" : "text-lg"}`}>
               {appointment.patientName}
             </h3>
-            <div className={`flex items-center gap-2 ${compact ? "text-xs" : "text-sm"} text-muted-foreground ${compact ? "flex-col sm:flex-row" : ""}`}>
+            <div
+              className={`flex items-center gap-2 ${compact ? "text-xs" : "text-sm"} text-muted-foreground ${compact ? "flex-col sm:flex-row" : ""}`}
+            >
               <div className="flex items-center gap-1">
                 <Clock className={`${compact ? "w-3 h-3" : "w-4 h-4"}`} />
                 <span>{formatTime(appointment.appointmentTime)}</span>
                 <span>({appointment.duration} min)</span>
               </div>
-              {appointment.isVirtual && <Badge variant="outline" className="text-xs">Virtual</Badge>}
+              {appointment.isVirtual && (
+                <Badge variant="outline" className="text-xs">
+                  Virtual
+                </Badge>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -453,7 +465,9 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              <Badge className={`text-xs font-medium ${getStatusColor(appointment.status)}`}>{appointment.status}</Badge>
+              <Badge className={`text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                {appointment.status}
+              </Badge>
               <Badge className={`text-xs font-medium ${getAppointmentTypeColor(appointment.appointmentType)}`}>
                 {appointment.appointmentType}
               </Badge>
@@ -520,7 +534,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                 <CardTitle className="text-sm">Available Time Slots</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {timeSlots.map(time => {
+                {timeSlots.map((time) => {
                   const hasAppointment = getAppointmentsForTimeSlot(currentDate, time).length > 0
 
                   return (
@@ -536,7 +550,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                           const selectedDateTime = new Date(currentDate)
                           const [hour, minute] = time.split(":").map(Number)
                           selectedDateTime.setHours(hour, minute, 0, 0)
-                          setNewAppointment(prev => ({
+                          setNewAppointment((prev) => ({
                             ...prev,
                             appointmentTime: selectedDateTime.toISOString()
                           }))
@@ -629,7 +643,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                         onClick={() => {
                           const selectedDateTime = new Date(day)
                           selectedDateTime.setHours(9, 0, 0, 0)
-                          setNewAppointment(prev => ({
+                          setNewAppointment((prev) => ({
                             ...prev,
                             appointmentTime: selectedDateTime.toISOString()
                           }))
@@ -643,7 +657,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                   ) : (
                     dayAppointments
                       .sort((a, b) => new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime())
-                      .map(appointment => (
+                      .map((appointment) => (
                         <motion.div
                           key={appointment.id}
                           initial={{ opacity: 0, scale: 0.9 }}
@@ -680,7 +694,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
       const dayAppointments = getAppointmentsForDate(currentDate)
       return (
         <div className="space-y-4">
-          {dayAppointments.map(appointment => (
+          {dayAppointments.map((appointment) => (
             <AppointmentCard key={appointment.id} appointment={appointment} />
           ))}
         </div>
@@ -690,7 +704,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
     const weekDays = generateWeekDays()
     return (
       <div className="space-y-6">
-        {weekDays.map(day => {
+        {weekDays.map((day) => {
           const dayAppointments = getAppointmentsForDate(day)
           return (
             <div key={day.toISOString()} className="space-y-3">
@@ -711,7 +725,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                 <div className="text-sm text-muted-foreground">No templates for this day.</div>
               ) : (
                 <div className="space-y-3">
-                  {dayAppointments.map(appointment => (
+                  {dayAppointments.map((appointment) => (
                     <AppointmentCard key={appointment.id} appointment={appointment} />
                   ))}
                 </div>
@@ -748,7 +762,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Tabs value={viewMode} onValueChange={value => setViewMode(value as "day" | "week")}>
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "day" | "week")}>
               <TabsList>
                 <TabsTrigger value="day">Day</TabsTrigger>
                 <TabsTrigger value="week">Week</TabsTrigger>
@@ -774,9 +788,9 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
 
             <Select
               value={selectedProvider}
-              onValueChange={value => {
+              onValueChange={(value) => {
                 setSelectedProvider(value)
-                setNewAppointment(prev => ({
+                setNewAppointment((prev) => ({
                   ...prev,
                   provider: value
                 }))
@@ -786,7 +800,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {providers.map(provider => (
+                {providers.map((provider) => (
                   <SelectItem key={provider} value={provider}>
                     {provider}
                   </SelectItem>
@@ -813,7 +827,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
               className="pl-9"
               placeholder="Search patient, ID, or encounter"
               value={searchTerm}
-              onChange={event => setSearchTerm(event.target.value)}
+              onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -831,12 +845,12 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
       <Separator />
 
       {/* Calendar View */}
-      {calendarView === "grid" ? (viewMode === "day" ? <DayView /> : <WeekView />) : <ListView />}
+      {calendarView === "grid" ? viewMode === "day" ? <DayView /> : <WeekView /> : <ListView />}
 
       {/* New/Edit Appointment Dialog */}
       <Dialog
         open={isDialogOpen}
-        onOpenChange={open => {
+        onOpenChange={(open) => {
           if (!open) {
             setShowNewAppointmentDialog(false)
             setEditingAppointment(null)
@@ -845,7 +859,9 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
       >
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>{editingAppointment ? "Edit Appointment Template" : "Create Appointment Template"}</DialogTitle>
+            <DialogTitle>
+              {editingAppointment ? "Edit Appointment Template" : "Create Appointment Template"}
+            </DialogTitle>
             <DialogDescription>
               {editingAppointment
                 ? "Update template details and clinical information."
@@ -869,7 +885,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Input
                       id="patientName"
                       value={editingAppointment?.patientName || newAppointment.patientName}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, patientName: event.target.value })
                         } else {
@@ -886,7 +902,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                       id="patientDOB"
                       type="date"
                       value={editingAppointment?.patientDOB || newAppointment.patientDOB}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, patientDOB: event.target.value })
                         } else {
@@ -901,7 +917,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Input
                       id="patientPhone"
                       value={editingAppointment?.patientPhone || newAppointment.patientPhone}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, patientPhone: event.target.value })
                         } else {
@@ -918,7 +934,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                       id="patientEmail"
                       type="email"
                       value={editingAppointment?.patientEmail || newAppointment.patientEmail}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, patientEmail: event.target.value })
                         } else {
@@ -934,7 +950,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Input
                       id="patientAddress"
                       value={editingAppointment?.patientAddress || newAppointment.patientAddress}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, patientAddress: event.target.value })
                         } else {
@@ -950,7 +966,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Input
                       id="insuranceInfo"
                       value={editingAppointment?.insuranceInfo || newAppointment.insuranceInfo}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, insuranceInfo: event.target.value })
                         } else {
@@ -977,7 +993,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                             ? new Date(newAppointment.appointmentTime).toISOString().slice(0, 16)
                             : ""
                       }
-                      onChange={event => {
+                      onChange={(event) => {
                         const isoString = new Date(event.target.value).toISOString()
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, appointmentTime: isoString })
@@ -992,7 +1008,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Label htmlFor="duration">Duration (minutes)</Label>
                     <Select
                       value={(editingAppointment?.duration || newAppointment.duration || 30).toString()}
-                      onValueChange={value => {
+                      onValueChange={(value) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, duration: parseInt(value, 10) })
                         } else {
@@ -1017,7 +1033,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Label htmlFor="appointmentType">Appointment Type</Label>
                     <Select
                       value={editingAppointment?.appointmentType || newAppointment.appointmentType || "New Patient"}
-                      onValueChange={value => {
+                      onValueChange={(value) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, appointmentType: value as any })
                         } else {
@@ -1042,7 +1058,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Label htmlFor="priority">Priority</Label>
                     <Select
                       value={editingAppointment?.priority || newAppointment.priority || "medium"}
-                      onValueChange={value => {
+                      onValueChange={(value) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, priority: value as any })
                         } else {
@@ -1065,7 +1081,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Label htmlFor="provider">Provider</Label>
                     <Select
                       value={editingAppointment?.provider || newAppointment.provider || selectedProvider}
-                      onValueChange={value => {
+                      onValueChange={(value) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, provider: value })
                         } else {
@@ -1077,11 +1093,13 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {providers.filter(provider => provider !== "All Providers").map(provider => (
-                          <SelectItem key={provider} value={provider}>
-                            {provider}
-                          </SelectItem>
-                        ))}
+                        {providers
+                          .filter((provider) => provider !== "All Providers")
+                          .map((provider) => (
+                            <SelectItem key={provider} value={provider}>
+                              {provider}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1091,7 +1109,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Input
                       id="location"
                       value={editingAppointment?.location || newAppointment.location}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, location: event.target.value })
                         } else {
@@ -1106,7 +1124,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Switch
                       id="isVirtual"
                       checked={editingAppointment?.isVirtual || newAppointment.isVirtual || false}
-                      onCheckedChange={checked => {
+                      onCheckedChange={(checked) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, isVirtual: checked })
                         } else {
@@ -1126,7 +1144,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Textarea
                       id="chiefComplaint"
                       value={editingAppointment?.chiefComplaint || newAppointment.chiefComplaint}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, chiefComplaint: event.target.value })
                         } else {
@@ -1143,7 +1161,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Textarea
                       id="medicalHistory"
                       value={editingAppointment?.medicalHistory || newAppointment.medicalHistory}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, medicalHistory: event.target.value })
                         } else {
@@ -1160,7 +1178,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Textarea
                       id="currentMedications"
                       value={editingAppointment?.currentMedications || newAppointment.currentMedications}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, currentMedications: event.target.value })
                         } else {
@@ -1177,7 +1195,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Textarea
                       id="allergies"
                       value={editingAppointment?.allergies || newAppointment.allergies}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, allergies: event.target.value })
                         } else {
@@ -1198,7 +1216,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Textarea
                       id="notes"
                       value={editingAppointment?.notes || newAppointment.notes}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, notes: event.target.value })
                         } else {
@@ -1215,7 +1233,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                     <Textarea
                       id="referralNotes"
                       value={editingAppointment?.referralNotes || newAppointment.referralNotes}
-                      onChange={event => {
+                      onChange={(event) => {
                         if (editingAppointment) {
                           setEditingAppointment({ ...editingAppointment, referralNotes: event.target.value })
                         } else {
@@ -1267,9 +1285,11 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                const updatedFiles = (editingAppointment?.chartFiles || newAppointment.chartFiles || []).filter(
-                                  (_, i) => i !== index
-                                )
+                                const updatedFiles = (
+                                  editingAppointment?.chartFiles ||
+                                  newAppointment.chartFiles ||
+                                  []
+                                ).filter((_, i) => i !== index)
                                 if (editingAppointment) {
                                   setEditingAppointment({
                                     ...editingAppointment,
@@ -1316,7 +1336,7 @@ export function Builder({ currentUser, appointments: propAppointments, onAppoint
       </Dialog>
 
       {/* Chart Upload Dialog */}
-      <Dialog open={showChartUpload !== null} onOpenChange={open => !open && setShowChartUpload(null)}>
+      <Dialog open={showChartUpload !== null} onOpenChange={(open) => !open && setShowChartUpload(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Medical Chart</DialogTitle>

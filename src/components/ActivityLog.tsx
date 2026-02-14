@@ -78,7 +78,7 @@ export function ActivityLog({ currentUser, userRole }: ActivityLogProps) {
           includeBackend: userRole === "admin" && showAdvanced,
           from: dateRange?.from?.toISOString(),
           to: dateRange?.to?.toISOString(),
-          cursor: mode === "append" ? nextCursorRef.current ?? undefined : undefined
+          cursor: mode === "append" ? (nextCursorRef.current ?? undefined) : undefined
         })
 
         if (mode === "append") {
@@ -367,7 +367,10 @@ export function ActivityLog({ currentUser, userRole }: ActivityLogProps) {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-center gap-3">
                             <h4 className="font-medium text-stone-900">{activity.action}</h4>
-                            <Badge variant="outline" className={`text-xs px-2 py-1 border ${getCategoryColor(activity.category)}`}>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs px-2 py-1 border ${getCategoryColor(activity.category)}`}
+                            >
                               <span className="flex items-center gap-1">
                                 {getCategoryIcon(activity.category)}
                                 {activity.category}

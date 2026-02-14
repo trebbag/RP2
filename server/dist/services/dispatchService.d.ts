@@ -1,122 +1,90 @@
 import { DispatchStatus, Prisma } from "@prisma/client";
 import { type DispatchPayloadInput } from "./ehrContractService.js";
 interface EnqueueDispatchJobInput {
+    orgId: string;
     encounterId: string;
     noteId?: string;
     payload: DispatchPayloadInput;
     createdById?: string;
 }
 export declare function enqueueDispatchJob(input: EnqueueDispatchJobInput): Promise<{
+    orgId: string;
     id: string;
     createdAt: Date;
-    encounterId: string;
     updatedAt: Date;
     createdById: string | null;
     status: import("@prisma/client").$Enums.DispatchStatus;
+    encounterId: string;
     noteId: string | null;
     payload: Prisma.JsonValue;
     target: import("@prisma/client").$Enums.DispatchTarget;
-    externalMessageId: string | null;
     contractType: string | null;
     attemptCount: number;
     maxAttempts: number;
     nextRetryAt: Date | null;
     dispatchedAt: Date | null;
     deadLetteredAt: Date | null;
+    externalMessageId: string | null;
     lastError: string | null;
     response: Prisma.JsonValue | null;
 }>;
-export declare function attemptDispatchJob(jobId: string, options?: {
+export declare function attemptDispatchJob(jobId: string, input?: {
+    orgId?: string;
     force?: boolean;
-}): Promise<{
-    id: string;
-    createdAt: Date;
-    encounterId: string;
-    updatedAt: Date;
-    createdById: string | null;
-    status: import("@prisma/client").$Enums.DispatchStatus;
-    noteId: string | null;
-    payload: Prisma.JsonValue;
-    target: import("@prisma/client").$Enums.DispatchTarget;
-    externalMessageId: string | null;
-    contractType: string | null;
-    attemptCount: number;
-    maxAttempts: number;
-    nextRetryAt: Date | null;
-    dispatchedAt: Date | null;
-    deadLetteredAt: Date | null;
-    lastError: string | null;
-    response: Prisma.JsonValue | null;
-}>;
-export declare function processDueDispatchJobs(limit?: number): Promise<any[]>;
-export declare function deadLetterSummary(windowMinutes?: number): Promise<{
+}): Promise<any>;
+export declare function processDueDispatchJobs(limit?: number, orgId?: string): Promise<any[]>;
+export declare function deadLetterSummary(windowMinutes?: number, orgId?: string): Promise<{
     windowMinutes: number;
     deadLetterRecentCount: number;
     retryingCount: number;
     pendingCount: number;
 }>;
 export declare function emitDeadLetterAlertIfNeeded(): Promise<void>;
-export declare function listDispatchJobs(input?: {
+export declare function listDispatchJobs(input: {
+    orgId: string;
     status?: DispatchStatus;
     limit?: number;
     encounterId?: string;
 }): Promise<{
+    orgId: string;
     id: string;
     createdAt: Date;
-    encounterId: string;
     updatedAt: Date;
     createdById: string | null;
     status: import("@prisma/client").$Enums.DispatchStatus;
+    encounterId: string;
     noteId: string | null;
     payload: Prisma.JsonValue;
     target: import("@prisma/client").$Enums.DispatchTarget;
-    externalMessageId: string | null;
     contractType: string | null;
     attemptCount: number;
     maxAttempts: number;
     nextRetryAt: Date | null;
     dispatchedAt: Date | null;
     deadLetteredAt: Date | null;
+    externalMessageId: string | null;
     lastError: string | null;
     response: Prisma.JsonValue | null;
 }[]>;
-export declare function replayDispatchJob(jobId: string, actorId?: string): Promise<{
+export declare function replayDispatchJob(jobId: string, orgId: string, actorId?: string): Promise<any>;
+export declare function markDispatchJobDeadLetter(jobId: string, orgId: string, reason: string, actorId?: string): Promise<{
+    orgId: string;
     id: string;
     createdAt: Date;
-    encounterId: string;
     updatedAt: Date;
     createdById: string | null;
     status: import("@prisma/client").$Enums.DispatchStatus;
+    encounterId: string;
     noteId: string | null;
     payload: Prisma.JsonValue;
     target: import("@prisma/client").$Enums.DispatchTarget;
-    externalMessageId: string | null;
     contractType: string | null;
     attemptCount: number;
     maxAttempts: number;
     nextRetryAt: Date | null;
     dispatchedAt: Date | null;
     deadLetteredAt: Date | null;
-    lastError: string | null;
-    response: Prisma.JsonValue | null;
-}>;
-export declare function markDispatchJobDeadLetter(jobId: string, reason: string, actorId?: string): Promise<{
-    id: string;
-    createdAt: Date;
-    encounterId: string;
-    updatedAt: Date;
-    createdById: string | null;
-    status: import("@prisma/client").$Enums.DispatchStatus;
-    noteId: string | null;
-    payload: Prisma.JsonValue;
-    target: import("@prisma/client").$Enums.DispatchTarget;
     externalMessageId: string | null;
-    contractType: string | null;
-    attemptCount: number;
-    maxAttempts: number;
-    nextRetryAt: Date | null;
-    dispatchedAt: Date | null;
-    deadLetteredAt: Date | null;
     lastError: string | null;
     response: Prisma.JsonValue | null;
 }>;

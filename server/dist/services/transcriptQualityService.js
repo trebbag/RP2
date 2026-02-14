@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { TRANSCRIPT_TEXT_REDACTED } from "./transcriptRetentionService.js";
 const LOW_CONFIDENCE_THRESHOLD = 0.72;
 const VERY_SHORT_TEXT_THRESHOLD = 4;
 function normalizeSpeaker(value) {
@@ -25,6 +26,7 @@ export function buildTranscriptQualityReport(segments) {
         const segment = sorted[index];
         const normalizedSpeaker = normalizeSpeaker(segment.speaker);
         const normalizedText = segment.text.trim();
+        const isRedactedText = normalizedText.length === 0 || normalizedText === TRANSCRIPT_TEXT_REDACTED;
         if (typeof segment.confidence === "number") {
             confidenceTotal += segment.confidence;
             confidenceCount += 1;
@@ -38,7 +40,7 @@ export function buildTranscriptQualityReport(segments) {
                 });
             }
         }
-        if (normalizedText.split(/\s+/).filter(Boolean).length <= VERY_SHORT_TEXT_THRESHOLD) {
+        if (!isRedactedText && normalizedText.split(/\s+/).filter(Boolean).length <= VERY_SHORT_TEXT_THRESHOLD) {
             veryShortSegmentCount += 1;
             issues.push({
                 code: "VERY_SHORT_SEGMENT",

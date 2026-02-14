@@ -1,18 +1,24 @@
+import { createHash } from "node:crypto";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { authenticate, requireRole, signAuthToken } from "../middleware/auth.js";
+import { requireOrgContext } from "../middleware/tenant.js";
 import { ApiError } from "../middleware/errorHandler.js";
 import { writeSystemAuditLog } from "../middleware/audit.js";
 import { createRefreshSession, hashPassword, revokeAllUserSessions, revokeRefreshSession, rotateRefreshSession, verifyPassword } from "../services/authService.js";
 import { buildOtpAuthUrl, consumeBackupCode, generateBackupCodes, generateMfaSecret, validatePasswordComplexity, verifyTotpCode } from "../services/securityService.js";
+import { ensureMembership, ensureOrganization, ensureTenantBootstrap, normalizeOrganizationInput, resolveLoginMembership } from "../services/tenantService.js";
+import { buildOidcAuthorizationRedirect, clearOidcStateCookie, redeemOidcCallback, setOidcStateCookie } from "../services/oidcService.js";
 export const authRoutes = Router();
 const devLoginSchema = z.object({
     email: z.string().email(),
     name: z.string().min(2),
-    role: z.enum(["ADMIN", "MA", "CLINICIAN"]).default("CLINICIAN")
+    role: z.enum(["ADMIN", "MA", "CLINICIAN"]).default("CLINICIAN"),
+    orgName: z.string().trim().min(2).max(120).optional(),
+    orgSlug: z.string().trim().min(2).max(64).optional()
 });
 const registerSchema = z.object({
     email: z.string().email(),
@@ -24,7 +30,8 @@ const loginSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
     mfaCode: z.string().optional(),
-    backupCode: z.string().optional()
+    backupCode: z.string().optional(),
+    orgId: z.string().min(3).max(64).optional()
 });
 const refreshSchema = z.object({
     refreshToken: z.string().optional()
@@ -44,9 +51,15 @@ const mfaEnrollmentCompleteSchema = z.object({
     enrollmentToken: z.string().min(20),
     mfaCode: z.string().min(6).max(8)
 });
+function requireLocalAuthEnabled() {
+    if (env.AUTH_MODE !== "local") {
+        throw new ApiError(404, "Local auth is disabled");
+    }
+}
 authRoutes.get("/policy", (_req, res) => {
     res.status(200).json({
         policy: {
+            authMode: env.AUTH_MODE,
             passwordMinLength: env.PASSWORD_MIN_LENGTH,
             mfaRequired: env.MFA_REQUIRED,
             allowDevLogin: env.ALLOW_DEV_LOGIN && env.NODE_ENV !== "production"
@@ -64,12 +77,15 @@ authRoutes.get("/bootstrap-status", async (_req, res, next) => {
         next(error);
     }
 });
-function sanitizeUser(user) {
+function sanitizeUser(user, context) {
     return {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: context.role,
+        orgId: context.orgId,
+        orgName: context.orgName ?? null,
+        orgSlug: context.orgSlug ?? null,
         mfaEnabled: Boolean(user.mfaEnabled)
     };
 }
@@ -93,18 +109,19 @@ function parseCookieValue(cookieHeader, key) {
 function setRefreshCookie(res, refreshToken) {
     const secure = env.NODE_ENV === "production";
     const maxAgeMs = env.REFRESH_TOKEN_TTL_HOURS * 60 * 60 * 1000;
-    res.setHeader("Set-Cookie", `rp_refresh=${encodeURIComponent(refreshToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}${secure ? "; Secure" : ""}`);
+    res.append("Set-Cookie", `rp_refresh=${encodeURIComponent(refreshToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}${secure ? "; Secure" : ""}`);
 }
 function clearRefreshCookie(res) {
     const secure = env.NODE_ENV === "production";
-    res.setHeader("Set-Cookie", `rp_refresh=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? "; Secure" : ""}`);
+    res.append("Set-Cookie", `rp_refresh=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure ? "; Secure" : ""}`);
 }
-function issueAccessToken(user) {
+function issueAccessToken(user, context) {
     return signAuthToken({
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: context.role,
+        orgId: context.orgId
     });
 }
 function signEnrollmentToken(userId) {
@@ -122,6 +139,8 @@ function verifyEnrollmentToken(token) {
 }
 authRoutes.post("/register-first", async (req, res, next) => {
     try {
+        requireLocalAuthEnabled();
+        await ensureTenantBootstrap();
         const usersCount = await prisma.user.count();
         if (usersCount > 0) {
             throw new ApiError(403, "Bootstrap registration is disabled after initial user creation");
@@ -141,23 +160,36 @@ authRoutes.post("/register-first", async (req, res, next) => {
                 passwordHash: hashPassword(payload.password)
             }
         });
-        const accessToken = issueAccessToken(user);
-        const refresh = await createRefreshSession(user.id, {
+        const organization = await ensureOrganization({ slug: "default", name: "Default Organization" });
+        const membership = await ensureMembership({
+            orgId: organization.id,
+            userId: user.id,
+            role: payload.role
+        });
+        const accessToken = issueAccessToken(user, { role: membership.role, orgId: membership.orgId });
+        const refresh = await createRefreshSession(user.id, membership.orgId, {
             ip: req.ip,
             userAgent: req.get("user-agent") ?? undefined
         });
         setRefreshCookie(res, refresh.token);
         res.status(201).json({
             token: accessToken,
-            user: sanitizeUser(user)
+            user: sanitizeUser(user, {
+                role: membership.role,
+                orgId: membership.orgId,
+                orgName: organization.name,
+                orgSlug: organization.slug
+            })
         });
     }
     catch (error) {
         next(error);
     }
 });
-authRoutes.post("/register", authenticate, requireRole(["ADMIN"]), async (req, res, next) => {
+authRoutes.post("/register", authenticate, requireOrgContext, requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        requireLocalAuthEnabled();
+        const authReq = req;
         const payload = registerSchema.parse(req.body);
         const passwordCheck = validatePasswordComplexity(payload.password);
         if (!passwordCheck.valid) {
@@ -173,8 +205,22 @@ authRoutes.post("/register", authenticate, requireRole(["ADMIN"]), async (req, r
                 passwordHash: hashPassword(payload.password)
             }
         });
+        await ensureMembership({
+            orgId: authReq.user.orgId,
+            userId: user.id,
+            role: payload.role
+        });
+        const orgRecord = await prisma.organization.findUnique({
+            where: { id: authReq.user.orgId },
+            select: { name: true, slug: true }
+        });
         res.status(201).json({
-            user: sanitizeUser(user)
+            user: sanitizeUser(user, {
+                role: payload.role,
+                orgId: authReq.user.orgId,
+                orgName: orgRecord?.name ?? null,
+                orgSlug: orgRecord?.slug ?? null
+            })
         });
     }
     catch (error) {
@@ -183,6 +229,8 @@ authRoutes.post("/register", authenticate, requireRole(["ADMIN"]), async (req, r
 });
 authRoutes.post("/login", async (req, res, next) => {
     try {
+        requireLocalAuthEnabled();
+        await ensureTenantBootstrap();
         const payload = loginSchema.parse(req.body);
         const user = await prisma.user.findUnique({
             where: { email: payload.email }
@@ -249,15 +297,47 @@ authRoutes.post("/login", async (req, res, next) => {
                 });
             }
         }
-        const refresh = await createRefreshSession(user.id, {
+        const membership = await resolveLoginMembership({
+            userId: user.id,
+            requestedOrgId: payload.orgId
+        });
+        if (!membership) {
+            const memberships = await prisma.membership.findMany({
+                where: {
+                    userId: user.id
+                },
+                include: {
+                    organization: {
+                        select: { id: true, slug: true, name: true }
+                    }
+                },
+                orderBy: { createdAt: "asc" },
+                take: 10
+            });
+            throw new ApiError(409, "Organization selection required", {
+                orgSelectionRequired: true,
+                organizations: memberships.map((row) => ({
+                    id: row.organization.id,
+                    slug: row.organization.slug,
+                    name: row.organization.name,
+                    role: row.role
+                }))
+            });
+        }
+        const refresh = await createRefreshSession(user.id, membership.orgId, {
             ip: req.ip,
             userAgent: req.get("user-agent") ?? undefined
         });
         setRefreshCookie(res, refresh.token);
-        const token = issueAccessToken(user);
+        const token = issueAccessToken(user, { role: membership.role, orgId: membership.orgId });
         res.status(200).json({
             token,
-            user: sanitizeUser(user)
+            user: sanitizeUser(user, {
+                role: membership.role,
+                orgId: membership.orgId,
+                orgName: membership.organization.name,
+                orgSlug: membership.organization.slug
+            })
         });
     }
     catch (error) {
@@ -266,6 +346,7 @@ authRoutes.post("/login", async (req, res, next) => {
 });
 authRoutes.post("/mfa/enroll/start", async (req, res, next) => {
     try {
+        requireLocalAuthEnabled();
         if (!env.MFA_REQUIRED) {
             throw new ApiError(409, "MFA enrollment flow is available only when MFA_REQUIRED=true");
         }
@@ -324,9 +405,11 @@ authRoutes.post("/mfa/enroll/start", async (req, res, next) => {
 });
 authRoutes.post("/mfa/enroll/complete", async (req, res, next) => {
     try {
+        requireLocalAuthEnabled();
         if (!env.MFA_REQUIRED) {
             throw new ApiError(409, "MFA enrollment flow is available only when MFA_REQUIRED=true");
         }
+        await ensureTenantBootstrap();
         const payload = mfaEnrollmentCompleteSchema.parse(req.body);
         const enrollment = verifyEnrollmentToken(payload.enrollmentToken);
         const user = await prisma.user.findUnique({
@@ -357,8 +440,16 @@ authRoutes.post("/mfa/enroll/complete", async (req, res, next) => {
                 mfaBackupCodesHash: backupCodes.hashed
             }
         });
-        const accessToken = issueAccessToken(updated);
-        const refresh = await createRefreshSession(updated.id, {
+        const membership = await resolveLoginMembership({
+            userId: updated.id
+        });
+        if (!membership) {
+            throw new ApiError(409, "Organization selection required", {
+                orgSelectionRequired: true
+            });
+        }
+        const accessToken = issueAccessToken(updated, { role: membership.role, orgId: membership.orgId });
+        const refresh = await createRefreshSession(updated.id, membership.orgId, {
             ip: req.ip,
             userAgent: req.get("user-agent") ?? undefined
         });
@@ -368,6 +459,7 @@ authRoutes.post("/mfa/enroll/complete", async (req, res, next) => {
             entity: "auth",
             entityId: updated.id,
             actorId: updated.id,
+            orgId: membership.orgId,
             details: {
                 email: updated.email,
                 ip: req.ip
@@ -375,7 +467,12 @@ authRoutes.post("/mfa/enroll/complete", async (req, res, next) => {
         });
         res.status(200).json({
             token: accessToken,
-            user: sanitizeUser(updated),
+            user: sanitizeUser(updated, {
+                role: membership.role,
+                orgId: membership.orgId,
+                orgName: membership.organization.name,
+                orgSlug: membership.organization.slug
+            }),
             backupCodes: backupCodes.plain
         });
     }
@@ -385,6 +482,7 @@ authRoutes.post("/mfa/enroll/complete", async (req, res, next) => {
 });
 authRoutes.post("/refresh", async (req, res, next) => {
     try {
+        await ensureTenantBootstrap();
         const body = refreshSchema.parse(req.body ?? {});
         const cookieToken = parseCookieValue(req.headers.cookie, "rp_refresh");
         const refreshToken = body.refreshToken ?? cookieToken;
@@ -407,11 +505,28 @@ authRoutes.post("/refresh", async (req, res, next) => {
             });
             throw new ApiError(401, "Invalid or expired refresh session");
         }
+        const membership = await prisma.membership.findUnique({
+            where: {
+                orgId_userId: {
+                    orgId: rotated.orgId,
+                    userId: rotated.user.id
+                }
+            },
+            include: { organization: true }
+        });
+        if (!membership) {
+            throw new ApiError(403, "Organization access denied");
+        }
         setRefreshCookie(res, rotated.token);
-        const token = issueAccessToken(rotated.user);
+        const token = issueAccessToken(rotated.user, { role: membership.role, orgId: membership.orgId });
         res.status(200).json({
             token,
-            user: sanitizeUser(rotated.user)
+            user: sanitizeUser(rotated.user, {
+                role: membership.role,
+                orgId: membership.orgId,
+                orgName: membership.organization.name,
+                orgSlug: membership.organization.slug
+            })
         });
     }
     catch (error) {
@@ -584,7 +699,12 @@ authRoutes.post("/dev-login", async (req, res, next) => {
         if (!env.ALLOW_DEV_LOGIN || env.NODE_ENV === "production") {
             throw new ApiError(404, "Dev login is disabled");
         }
+        await ensureTenantBootstrap();
         const payload = devLoginSchema.parse(req.body);
+        const orgInput = normalizeOrganizationInput({
+            orgName: payload.orgName,
+            orgSlug: payload.orgSlug
+        });
         const user = await prisma.user.upsert({
             where: { email: payload.email },
             update: {
@@ -597,28 +717,171 @@ authRoutes.post("/dev-login", async (req, res, next) => {
                 role: payload.role
             }
         });
-        const token = issueAccessToken(user);
-        const refresh = await createRefreshSession(user.id, {
+        const organization = await ensureOrganization({
+            slug: orgInput.slug,
+            name: orgInput.name
+        });
+        const membership = await ensureMembership({
+            orgId: organization.id,
+            userId: user.id,
+            role: payload.role
+        });
+        const token = issueAccessToken(user, { role: membership.role, orgId: membership.orgId });
+        const refresh = await createRefreshSession(user.id, membership.orgId, {
             ip: req.ip,
             userAgent: req.get("user-agent") ?? undefined
         });
         setRefreshCookie(res, refresh.token);
-        res.status(200).json({ token, user: sanitizeUser(user) });
+        res.status(200).json({
+            token,
+            user: sanitizeUser(user, {
+                role: membership.role,
+                orgId: membership.orgId,
+                orgName: organization.name,
+                orgSlug: organization.slug
+            })
+        });
     }
     catch (error) {
         next(error);
     }
 });
-authRoutes.get("/me", authenticate, async (req, res, next) => {
+authRoutes.get("/oidc/login", async (req, res, next) => {
+    try {
+        const { url, cookie } = await buildOidcAuthorizationRedirect({
+            returnTo: req.query.returnTo,
+            requestedOrgId: req.query.orgId
+        });
+        setOidcStateCookie(res, cookie);
+        res.redirect(url);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+authRoutes.get("/oidc/callback", async (req, res, next) => {
+    try {
+        const code = typeof req.query.code === "string" ? req.query.code : null;
+        const state = typeof req.query.state === "string" ? req.query.state : null;
+        if (!code || !state) {
+            throw new ApiError(400, "Missing OIDC callback parameters");
+        }
+        await ensureTenantBootstrap();
+        const { profile, returnTo, requestedOrgId } = await redeemOidcCallback({
+            code,
+            state,
+            cookieHeader: req.headers.cookie
+        });
+        let user = await prisma.user.findUnique({
+            where: { email: profile.email }
+        });
+        if (!user) {
+            const existingCount = await prisma.user.count();
+            const bootstrapRole = existingCount === 0 ? "ADMIN" : "CLINICIAN";
+            user = await prisma.user.create({
+                data: {
+                    email: profile.email,
+                    name: profile.name,
+                    role: bootstrapRole
+                }
+            });
+        }
+        else if (profile.name && profile.name !== user.name) {
+            // Keep names reasonably current from IdP without overwriting intentional edits too often.
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    name: profile.name
+                }
+            });
+        }
+        const membership = await resolveLoginMembership({
+            userId: user.id,
+            requestedOrgId: requestedOrgId || undefined
+        });
+        if (!membership) {
+            const organization = await ensureOrganization({ slug: "default", name: "Default Organization" });
+            const role = user.role === "ADMIN" ? "ADMIN" : "CLINICIAN";
+            await ensureMembership({
+                orgId: organization.id,
+                userId: user.id,
+                role
+            });
+        }
+        const finalMembership = await resolveLoginMembership({
+            userId: user.id,
+            requestedOrgId: requestedOrgId || undefined
+        });
+        if (!finalMembership) {
+            throw new ApiError(409, "Organization selection required", {
+                orgSelectionRequired: true
+            });
+        }
+        const refresh = await createRefreshSession(user.id, finalMembership.orgId, {
+            ip: req.ip,
+            userAgent: req.get("user-agent") ?? undefined
+        });
+        setRefreshCookie(res, refresh.token);
+        clearOidcStateCookie(res);
+        await writeSystemAuditLog({
+            action: "auth_oidc_login",
+            entity: "auth",
+            entityId: user.id,
+            actorId: user.id,
+            orgId: finalMembership.orgId,
+            details: {
+                provider: env.OIDC_ISSUER_URL ? new URL(env.OIDC_ISSUER_URL).origin : "unknown",
+                emailHash: createHash("sha256").update(user.email).digest("hex"),
+                ip: req.ip
+            }
+        });
+        // Redirect back to frontend. The SPA will call /api/auth/refresh to obtain an access token.
+        res.redirect(returnTo);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+authRoutes.get("/me", authenticate, requireOrgContext, async (req, res, next) => {
     try {
         const authReq = req;
+        const membership = await prisma.membership.findUnique({
+            where: {
+                orgId_userId: {
+                    orgId: authReq.user.orgId,
+                    userId: authReq.user.id
+                }
+            },
+            include: {
+                organization: {
+                    select: { name: true, slug: true }
+                }
+            }
+        });
+        if (!membership) {
+            res.status(403).json({ error: "Organization access denied" });
+            return;
+        }
         const user = await prisma.user.findUnique({ where: { id: authReq.user.id } });
         if (!user) {
-            res.status(200).json({ user: authReq.user, source: "token" });
+            res.status(200).json({
+                user: sanitizeUser(authReq.user, {
+                    role: membership.role,
+                    orgId: membership.orgId,
+                    orgName: membership.organization.name,
+                    orgSlug: membership.organization.slug
+                }),
+                source: "token"
+            });
             return;
         }
         res.status(200).json({
-            user: sanitizeUser(user),
+            user: sanitizeUser(user, {
+                role: membership.role,
+                orgId: membership.orgId,
+                orgName: membership.organization.name,
+                orgSlug: membership.organization.slug
+            }),
             source: "database"
         });
     }

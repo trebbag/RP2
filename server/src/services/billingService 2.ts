@@ -18,10 +18,7 @@ interface BillingInput {
 export function calculateBillingEstimate(input: BillingInput) {
   const selectedCptCodes = input.selectedCodes.filter((code) => /^\d{5}$/.test(code))
 
-  const estimatedChargeCents = selectedCptCodes.reduce(
-    (sum, code) => sum + (CPT_CHARGE_TABLE_CENTS[code] ?? 6500),
-    0
-  )
+  const estimatedChargeCents = selectedCptCodes.reduce((sum, code) => sum + (CPT_CHARGE_TABLE_CENTS[code] ?? 6500), 0)
 
   const outOfPocketCents = Math.round(estimatedChargeCents * 0.2)
   const expectedReimbursementCents = Math.max(estimatedChargeCents - outOfPocketCents, 0)

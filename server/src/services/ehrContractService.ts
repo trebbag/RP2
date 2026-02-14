@@ -43,10 +43,7 @@ function toCentsDollars(cents: number): number {
 }
 
 function sanitizeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
 function buildFhirBundle(payload: DispatchPayloadInput): DispatchContractResult {
@@ -164,7 +161,10 @@ function sanitizeHl7Field(value: string): string {
 
 function buildHl7Message(payload: DispatchPayloadInput): DispatchContractResult {
   const now = new Date()
-  const ts = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "")
+  const ts = now
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "")
   const idempotencyKey = sanitizeHl7Field(payload.dispatchMetadata?.idempotencyKey || payload.encounterExternalId)
   const contractVersion = sanitizeHl7Field(payload.dispatchMetadata?.contractVersion || "v1")
   const lines = [

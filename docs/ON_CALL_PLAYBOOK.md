@@ -40,57 +40,89 @@ This document defines triage and mitigation steps for pilot incidents.
 ## Runbook: Dispatch Incident
 
 1. Confirm target and contract:
+
 - Check job `target`, `contractType`, and `lastError` in dispatch dashboard.
+
 2. Validate transport/auth config:
+
 - Verify `DISPATCH_TARGET`, `DISPATCH_WEBHOOK_URL`, MLLP host/port, and auth mode env vars.
+
 3. Contain:
+
 - Move noisy broken jobs to dead-letter if they block queue progress.
+
 4. Recover:
+
 - Fix endpoint/auth mapping.
 - Replay dead-letter and retrying jobs in small batches.
+
 5. Verify:
+
 - Ensure new dispatches move to `DISPATCHED`.
 - Confirm dead-letter count stabilizes below threshold.
 
 ## Runbook: STT/Diarization Incident
 
 1. Identify affected encounters:
+
 - Use observability and transcript quality score.
+
 2. Immediate mitigation:
+
 - Use transcript correction endpoint/UI for critical segments.
+
 3. Root cause checks:
+
 - Microphone/browser capture issues.
 - External STT provider degradation.
 - Label mismatch in `DIARIZATION_SPEAKERS`.
+
 4. Verify:
+
 - Fallback rate and low-confidence segment rates return to baseline.
 
 ## Runbook: Auth/MFA Incident
 
 1. Scope failures:
+
 - Inspect auth failure count and recent audit log entries.
+
 2. Check policy/config:
+
 - `ALLOW_DEV_LOGIN`, `MFA_REQUIRED`, JWT secret validity, token TTL settings.
+
 3. User recovery:
+
 - For locked-out users, verify MFA setup state and backup-code path.
+
 4. Containment:
+
 - If suspicious activity, force `logout-all` and rotate secrets per security runbook.
 
 ## Runbook: AI Quality Drift Incident
 
 1. Identify the failing signal:
+
 - Suggestion acceptance low, transcript correction high, or compliance false-positive high.
+
 2. Scope blast radius:
+
 - Confirm whether the drift is one clinician/workflow or broad across encounters.
+
 3. Triage by source:
+
 - Prompt/regression drift: review latest prompt version IDs in trace artifacts.
 - STT/diarization drift: inspect transcript quality reports and correction logs.
 - Compliance drift: review dismissed-vs-resolved issue patterns by title/fingerprint.
+
 4. Mitigate:
+
 - Roll back prompt overrides for impacted users.
 - Increase manual review gate (clinician confirmation before finalize).
 - Route severe outliers to escalation queue for audit.
+
 5. Verify recovery:
+
 - Acceptance/correction/false-positive rates return below configured alert thresholds.
 
 ## Escalation

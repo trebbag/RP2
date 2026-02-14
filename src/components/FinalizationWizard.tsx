@@ -6,16 +6,16 @@ import { Checkbox } from "./ui/checkbox"
 import { Alert, AlertDescription } from "./ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog"
 import { ScrollArea } from "./ui/scroll-area"
-import { 
-  FileText, 
-  Code2, 
-  Heart, 
-  Activity, 
-  Stethoscope, 
-  Shield, 
-  CheckCircle, 
-  AlertTriangle, 
-  ArrowLeft, 
+import {
+  FileText,
+  Code2,
+  Heart,
+  Activity,
+  Stethoscope,
+  Shield,
+  CheckCircle,
+  AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   Download,
   Send,
@@ -53,18 +53,18 @@ interface WizardStep {
   required: boolean
 }
 
-export function FinalizationWizard({ 
-  isOpen, 
-  onClose, 
-  selectedCodes = { codes: 0, prevention: 0, diagnoses: 0, differentials: 0 }, 
-  selectedCodesList = [], 
+export function FinalizationWizard({
+  isOpen,
+  onClose,
+  selectedCodes = { codes: 0, prevention: 0, diagnoses: 0, differentials: 0 },
+  selectedCodesList = [],
   complianceIssues = [],
   noteContent = "",
   patientInfo
 }: FinalizationWizardProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false, false, false, false])
-  const [stepValidation, setStepValidation] = useState<{[key: number]: { valid: boolean, issues: string[] }}>({})
+  const [stepValidation, setStepValidation] = useState<{ [key: number]: { valid: boolean; issues: string[] } }>({})
   const [isFinalizationComplete, setIsFinalizationComplete] = useState(false)
   const [estimatedReimbursement, setEstimatedReimbursement] = useState(0)
 
@@ -81,7 +81,7 @@ export function FinalizationWizard({
       required: true
     },
     {
-      id: "code-verification", 
+      id: "code-verification",
       title: "Code Verification",
       description: "Validate selected CPT and procedure codes",
       icon: Code2,
@@ -96,7 +96,7 @@ export function FinalizationWizard({
       title: "Prevention Items",
       description: "Review preventive care recommendations",
       icon: Heart,
-      color: "text-red-600", 
+      color: "text-red-600",
       bgColor: "bg-red-50",
       completed: completedSteps[2] || false,
       hasIssues: false,
@@ -104,7 +104,7 @@ export function FinalizationWizard({
     },
     {
       id: "diagnoses-confirmation",
-      title: "Diagnoses Confirmation", 
+      title: "Diagnoses Confirmation",
       description: "Confirm primary and secondary diagnoses",
       icon: Activity,
       color: "text-purple-600",
@@ -119,7 +119,7 @@ export function FinalizationWizard({
       description: "Review differential diagnosis considerations",
       icon: Stethoscope,
       color: "text-green-600",
-      bgColor: "bg-green-50", 
+      bgColor: "bg-green-50",
       completed: completedSteps[4] || false,
       hasIssues: false,
       required: false
@@ -132,7 +132,7 @@ export function FinalizationWizard({
       color: "text-amber-600",
       bgColor: "bg-amber-50",
       completed: completedSteps[5] || false,
-      hasIssues: (complianceIssues?.filter(issue => !issue.dismissed) || []).length > 0,
+      hasIssues: (complianceIssues?.filter((issue) => !issue.dismissed) || []).length > 0,
       required: true
     }
   ]
@@ -147,10 +147,10 @@ export function FinalizationWizard({
       setEstimatedReimbursement(0)
       return
     }
-    
+
     const total = selectedCodesList.reduce((sum, code) => {
       if (code && code.reimbursement && code.reimbursement !== "N/A") {
-        const amount = parseFloat(code.reimbursement.replace(/[$,]/g, ''))
+        const amount = parseFloat(code.reimbursement.replace(/[$,]/g, ""))
         return sum + (isNaN(amount) ? 0 : amount)
       }
       return sum
@@ -191,7 +191,7 @@ export function FinalizationWizard({
         break
 
       case "compliance-checks":
-        const activeIssues = complianceIssues.filter(issue => !issue.dismissed && issue.severity === "critical")
+        const activeIssues = complianceIssues.filter((issue) => !issue.dismissed && issue.severity === "critical")
         if (activeIssues.length > 0) {
           issues.push(`${activeIssues.length} critical compliance issue(s) must be resolved`)
           valid = false
@@ -202,7 +202,7 @@ export function FinalizationWizard({
         valid = true
     }
 
-    setStepValidation(prev => ({
+    setStepValidation((prev) => ({
       ...prev,
       [stepIndex]: { valid, issues }
     }))
@@ -212,9 +212,9 @@ export function FinalizationWizard({
 
   const handleStepComplete = (stepIndex: number) => {
     const isValid = validateStep(stepIndex)
-    
+
     if (isValid) {
-      setCompletedSteps(prev => {
+      setCompletedSteps((prev) => {
         const updated = [...prev]
         updated[stepIndex] = true
         return updated
@@ -231,7 +231,7 @@ export function FinalizationWizard({
   }
 
   const canFinalize = () => {
-    const requiredSteps = steps.map((step, index) => ({ step, index })).filter(s => s.step.required)
+    const requiredSteps = steps.map((step, index) => ({ step, index })).filter((s) => s.step.required)
     return requiredSteps.every(({ index }) => completedSteps[index])
   }
 
@@ -242,7 +242,7 @@ export function FinalizationWizard({
       console.log("Finalizing note with data:", {
         selectedCodes,
         selectedCodesList,
-        complianceStatus: complianceIssues.filter(issue => !issue.dismissed),
+        complianceStatus: complianceIssues.filter((issue) => !issue.dismissed),
         estimatedReimbursement,
         patientInfo
       })
@@ -274,12 +274,15 @@ export function FinalizationWizard({
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Required Documentation Elements</label>
               <div className="space-y-2">
                 {[
-                  { item: "Chief complaint documented", checked: noteContent.includes("Chief") || noteContent.length > 100 },
+                  {
+                    item: "Chief complaint documented",
+                    checked: noteContent.includes("Chief") || noteContent.length > 100
+                  },
                   { item: "History of present illness", checked: noteContent.length > 150 },
                   { item: "Physical examination findings", checked: noteContent.length > 200 },
                   { item: "Assessment and plan", checked: noteContent.length > 100 }
@@ -310,7 +313,7 @@ export function FinalizationWizard({
         )
 
       case "code-verification": {
-        const cptCodes = (selectedCodesList || []).filter(code => code && code.type === "CPT")
+        const cptCodes = (selectedCodesList || []).filter((code) => code && code.type === "CPT")
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3">
@@ -321,7 +324,9 @@ export function FinalizationWizard({
                       <div className="flex items-center gap-3">
                         <Code2 className="h-4 w-4 text-blue-600" />
                         <div>
-                          <div className="font-medium text-sm">{code.code} - {code.description}</div>
+                          <div className="font-medium text-sm">
+                            {code.code} - {code.description}
+                          </div>
                           <div className="text-xs text-muted-foreground">{code.rationale}</div>
                         </div>
                       </div>
@@ -345,9 +350,7 @@ export function FinalizationWizard({
             <div className="p-3 bg-muted/30 rounded-lg">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">Estimated Total Reimbursement:</span>
-                <span className="font-bold text-lg text-green-600">
-                  ${estimatedReimbursement.toFixed(2)}
-                </span>
+                <span className="font-bold text-lg text-green-600">${estimatedReimbursement.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -355,13 +358,13 @@ export function FinalizationWizard({
       }
 
       case "prevention-items": {
-        const preventionCodes = (selectedCodesList || []).filter(code => code && code.category === "prevention")
+        const preventionCodes = (selectedCodesList || []).filter((code) => code && code.category === "prevention")
         return (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
               Review preventive care items and recommendations for this encounter.
             </div>
-            
+
             {preventionCodes.length > 0 ? (
               <div className="space-y-3">
                 {preventionCodes.map((code, index) => (
@@ -388,7 +391,7 @@ export function FinalizationWizard({
       }
 
       case "diagnoses-confirmation": {
-        const diagnosisCodes = (selectedCodesList || []).filter(code => code && code.category === "diagnoses")
+        const diagnosisCodes = (selectedCodesList || []).filter((code) => code && code.category === "diagnoses")
         return (
           <div className="space-y-4">
             {diagnosisCodes.length > 0 ? (
@@ -399,7 +402,9 @@ export function FinalizationWizard({
                       <div className="flex items-center gap-3">
                         <Activity className="h-4 w-4 text-purple-600" />
                         <div>
-                          <div className="font-medium text-sm">{code.code} - {code.description}</div>
+                          <div className="font-medium text-sm">
+                            {code.code} - {code.description}
+                          </div>
                           <div className="text-xs text-muted-foreground">{code.rationale}</div>
                         </div>
                       </div>
@@ -432,7 +437,7 @@ export function FinalizationWizard({
       }
 
       case "differentials-review": {
-        const differentialCodes = (selectedCodesList || []).filter(code => code && code.category === "differentials")
+        const differentialCodes = (selectedCodesList || []).filter((code) => code && code.category === "differentials")
         return (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
@@ -470,8 +475,8 @@ export function FinalizationWizard({
       }
 
       case "compliance-checks": {
-        const activeIssues = (complianceIssues || []).filter(issue => !issue.dismissed)
-        const criticalIssues = activeIssues.filter(issue => issue.severity === "critical")
+        const activeIssues = (complianceIssues || []).filter((issue) => !issue.dismissed)
+        const criticalIssues = activeIssues.filter((issue) => issue.severity === "critical")
 
         return (
           <div className="space-y-4">
@@ -489,16 +494,27 @@ export function FinalizationWizard({
             {activeIssues.length > 0 ? (
               <div className="space-y-3">
                 {activeIssues.map((issue, index) => (
-                  <Alert key={index} className={`
-                    ${issue.severity === "critical" ? "border-red-200 bg-red-50" : 
-                      issue.severity === "warning" ? "border-amber-200 bg-amber-50" : 
-                      "border-blue-200 bg-blue-50"}
-                  `}>
-                    <AlertTriangle className={`h-4 w-4 ${
-                      issue.severity === "critical" ? "text-red-600" :
-                      issue.severity === "warning" ? "text-amber-600" :
-                      "text-blue-600"
-                    }`} />
+                  <Alert
+                    key={index}
+                    className={`
+                    ${
+                      issue.severity === "critical"
+                        ? "border-red-200 bg-red-50"
+                        : issue.severity === "warning"
+                          ? "border-amber-200 bg-amber-50"
+                          : "border-blue-200 bg-blue-50"
+                    }
+                  `}
+                  >
+                    <AlertTriangle
+                      className={`h-4 w-4 ${
+                        issue.severity === "critical"
+                          ? "text-red-600"
+                          : issue.severity === "warning"
+                            ? "text-amber-600"
+                            : "text-blue-600"
+                      }`}
+                    />
                     <AlertDescription className="space-y-1">
                       <div className="font-medium">{issue.title}</div>
                       <div className="text-sm">{issue.description}</div>
@@ -533,11 +549,9 @@ export function FinalizationWizard({
               <CheckCircle className="h-5 w-5 text-green-600" />
               Note Finalized Successfully
             </DialogTitle>
-            <DialogDescription>
-              Your clinical note has been finalized and is ready for submission.
-            </DialogDescription>
+            <DialogDescription>Your clinical note has been finalized and is ready for submission.</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="space-y-2">
@@ -614,25 +628,29 @@ export function FinalizationWizard({
                     key={step.id}
                     className={`
                       p-3 rounded-lg border cursor-pointer transition-all
-                      ${isActive 
-                        ? `${step.bgColor} border-current/30 shadow-sm` 
-                        : isCompleted 
-                          ? 'bg-green-50 border-green-200 hover:bg-green-100'
-                          : 'bg-background border-border hover:bg-muted/50'
+                      ${
+                        isActive
+                          ? `${step.bgColor} border-current/30 shadow-sm`
+                          : isCompleted
+                            ? "bg-green-50 border-green-200 hover:bg-green-100"
+                            : "bg-background border-border hover:bg-muted/50"
                       }
                     `}
                     onClick={() => setCurrentStep(index)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`
+                      <div
+                        className={`
                         p-2 rounded-md flex-shrink-0
-                        ${isActive 
-                          ? step.color.replace('text-', 'bg-').replace('-600', '-100') + ' ' + step.color
-                          : isCompleted
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-muted text-muted-foreground'
+                        ${
+                          isActive
+                            ? step.color.replace("text-", "bg-").replace("-600", "-100") + " " + step.color
+                            : isCompleted
+                              ? "bg-green-100 text-green-600"
+                              : "bg-muted text-muted-foreground"
                         }
-                      `}>
+                      `}
+                      >
                         {isCompleted ? (
                           <CheckCircle className="h-4 w-4" />
                         ) : hasValidationIssues ? (
@@ -646,9 +664,7 @@ export function FinalizationWizard({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-sm">{step.title}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-2">
-                          {step.description}
-                        </div>
+                        <div className="text-xs text-muted-foreground line-clamp-2">{step.description}</div>
                         <div className="flex items-center gap-1 mt-1">
                           {step.required && (
                             <Badge variant="outline" className="text-xs px-1">
@@ -684,9 +700,7 @@ export function FinalizationWizard({
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-6">
-              {getCurrentStepContent()}
-            </ScrollArea>
+            <ScrollArea className="flex-1 p-6">{getCurrentStepContent()}</ScrollArea>
 
             {/* Navigation Footer */}
             <div className="border-t p-6 bg-muted/20 shrink-0">
@@ -714,9 +728,7 @@ export function FinalizationWizard({
                             Completed
                           </>
                         ) : (
-                          <>
-                            Mark Complete
-                          </>
+                          <>Mark Complete</>
                         )}
                       </Button>
                       <Button

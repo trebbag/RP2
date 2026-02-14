@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto"
 import { prisma } from "../lib/prisma.js"
-import {
-  defaultUserSettings,
-  normalizeUserSettingsPayload,
-  type UserSettingsPayload
-} from "./settingsService.js"
+import { defaultUserSettings, normalizeUserSettingsPayload, type UserSettingsPayload } from "./settingsService.js"
 
 export type AiPromptTask = "suggestions" | "compliance" | "compose" | "diarization"
 
@@ -227,7 +223,11 @@ export function buildPromptBundle(input: PromptBuildInput): PromptBundle {
     sections.push("", `Patient summary language must be ${profile.summaryLanguage}.`)
   }
 
-  if (parsedOverrides.globalLines.length > 0 || taskOverrideLines.length > 0 || parsedOverrides.normalizedText.length > 0) {
+  if (
+    parsedOverrides.globalLines.length > 0 ||
+    taskOverrideLines.length > 0 ||
+    parsedOverrides.normalizedText.length > 0
+  ) {
     sections.push("", "Operator overrides:")
 
     for (const line of parsedOverrides.globalLines) {
@@ -258,10 +258,7 @@ export function buildPromptBundle(input: PromptBuildInput): PromptBundle {
     normalizedOverrides: parsedOverrides.normalizedText
   })
 
-  const profileDigest = createHash("sha256")
-    .update(JSON.stringify(profile))
-    .digest("hex")
-    .slice(0, 16)
+  const profileDigest = createHash("sha256").update(JSON.stringify(profile)).digest("hex").slice(0, 16)
 
   return {
     task: input.task,
@@ -269,8 +266,7 @@ export function buildPromptBundle(input: PromptBuildInput): PromptBundle {
     instructions: sections.join("\n"),
     metadata: {
       profileDigest,
-      overridesApplied:
-        parsedOverrides.applied || taskOverrideLines.length > 0
+      overridesApplied: parsedOverrides.applied || taskOverrideLines.length > 0
     }
   }
 }

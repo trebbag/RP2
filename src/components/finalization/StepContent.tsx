@@ -134,8 +134,7 @@ const enhancedItems = (originalItems: any[], stepId: number): Item[] => {
     .filter(Boolean) as Item[]
 }
 
-const isCompletedStatus = (status: Item["status"]) =>
-  status === "completed" || status === "confirmed"
+const isCompletedStatus = (status: Item["status"]) => status === "completed" || status === "confirmed"
 
 export function StepContent({
   step,
@@ -170,11 +169,10 @@ export function StepContent({
   const showPatientTray = externalShowPatientTray !== undefined ? externalShowPatientTray : false
   const setShowPatientTray = onShowPatientTray || (() => {})
 
-  const filteredItems = hideCompleted
-    ? items.filter((item) => item && !isCompletedStatus(item.status))
-    : items
+  const filteredItems = hideCompleted ? items.filter((item) => item && !isCompletedStatus(item.status)) : items
 
-  const adjustedActiveIndex = filteredItems.length > 0 ? Math.min(Math.max(0, activeItemIndex), filteredItems.length - 1) : 0
+  const adjustedActiveIndex =
+    filteredItems.length > 0 ? Math.min(Math.max(0, activeItemIndex), filteredItems.length - 1) : 0
   const activeItem = filteredItems.length > 0 ? filteredItems[adjustedActiveIndex] : null
 
   React.useEffect(() => {
@@ -182,9 +180,7 @@ export function StepContent({
   }, [activeItem, onActiveItemChange])
 
   const updateItemStatus = (itemId: number, status: Item["status"]) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, status } : item))
-    )
+    setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, status } : item)))
 
     const changed = items.find((item) => item.id === itemId)
     if (changed) {
@@ -214,7 +210,8 @@ export function StepContent({
     return groups
   }, [filteredItems])
 
-  const progressValue = items.length > 0 ? (items.filter((item) => isCompletedStatus(item.status)).length / items.length) * 100 : 0
+  const progressValue =
+    items.length > 0 ? (items.filter((item) => isCompletedStatus(item.status)).length / items.length) * 100 : 0
 
   return (
     <motion.div
@@ -237,7 +234,13 @@ export function StepContent({
                       : "bg-gradient-to-r from-blue-500 to-indigo-600"
                 }`}
               >
-                {step.stepType === "selected" ? "✓" : step.stepType === "suggested" ? <Zap size={14} className="text-white" /> : step.id}
+                {step.stepType === "selected" ? (
+                  "✓"
+                ) : step.stepType === "suggested" ? (
+                  <Zap size={14} className="text-white" />
+                ) : (
+                  step.id
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -255,7 +258,9 @@ export function StepContent({
                   {step.stepType && (
                     <span
                       className={`text-xs px-2 py-0.5 rounded-md font-medium ${
-                        step.stepType === "selected" ? "bg-emerald-100 text-emerald-700" : "bg-violet-100 text-violet-700"
+                        step.stepType === "selected"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-violet-100 text-violet-700"
                       }`}
                     >
                       {step.stepType === "selected" ? "Your Codes" : "AI Suggestions"}
@@ -324,7 +329,8 @@ export function StepContent({
               className="font-medium text-slate-700 text-sm bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm hover:bg-white hover:shadow-md transition-all duration-200 cursor-pointer border border-transparent hover:border-slate-200 flex items-center gap-1"
             >
               <Filter size={12} />
-              Items ({filteredItems.length}{hideCompleted && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
+              Items ({filteredItems.length}
+              {hideCompleted && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
             </button>
 
             <Button
@@ -447,9 +453,7 @@ export function StepContent({
                     >
                       <Card
                         className={`h-full p-5 rounded-2xl border shadow-xl transition-all ${
-                          absOffset === 0
-                            ? "bg-white border-slate-200/80"
-                            : "bg-white/80 border-slate-200/50"
+                          absOffset === 0 ? "bg-white border-slate-200/80" : "bg-white/80 border-slate-200/50"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -650,7 +654,11 @@ export function StepContent({
                         {patientQuestions.length} follow-up question{patientQuestions.length !== 1 ? "s" : ""}
                       </p>
                     </div>
-                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => setShowPatientTray(true)}>
+                    <Button
+                      size="sm"
+                      className="bg-amber-600 hover:bg-amber-700"
+                      onClick={() => setShowPatientTray(true)}
+                    >
                       <MessageSquare size={14} className="mr-1" />
                       Review
                     </Button>
@@ -673,7 +681,13 @@ export function StepContent({
           style={{ boxShadow: "0 -4px 16px rgba(15, 23, 42, 0.08), 0 -1px 4px rgba(15, 23, 42, 0.04)" }}
         >
           <div className="flex justify-between items-center">
-            <Button variant="outline" onClick={onPrevious} disabled={step.id === 1} className="flex items-center gap-2 h-11 px-5" size="sm">
+            <Button
+              variant="outline"
+              onClick={onPrevious}
+              disabled={step.id === 1}
+              className="flex items-center gap-2 h-11 px-5"
+              size="sm"
+            >
               <ChevronLeft size={16} />
               Previous Step
             </Button>
@@ -682,7 +696,11 @@ export function StepContent({
               <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
               <span>{step.title}</span>
             </div>
-            <Button onClick={onNext} className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white h-11 px-5" size="sm">
+            <Button
+              onClick={onNext}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white h-11 px-5"
+              size="sm"
+            >
               Next Step
               <ChevronRight size={16} />
             </Button>
@@ -698,7 +716,13 @@ export function StepContent({
           className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md border border-white/30 rounded-xl p-3 shadow-lg shadow-slate-900/10 z-30"
         >
           <div className="flex justify-between items-center">
-            <Button variant="outline" onClick={onPrevious} disabled={step.id === 0} className="flex items-center gap-2 h-9 px-4" size="sm">
+            <Button
+              variant="outline"
+              onClick={onPrevious}
+              disabled={step.id === 0}
+              className="flex items-center gap-2 h-9 px-4"
+              size="sm"
+            >
               <ChevronLeft size={16} />
               Previous Step
             </Button>
@@ -709,7 +733,12 @@ export function StepContent({
               <span>{step.title}</span>
             </div>
 
-            <Button onClick={onNext} disabled={step.id === 6} className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white h-9 px-4" size="sm">
+            <Button
+              onClick={onNext}
+              disabled={step.id === 6}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white h-9 px-4"
+              size="sm"
+            >
               Next Step
               <ChevronRight size={16} />
             </Button>

@@ -131,6 +131,13 @@ enum DispatchStatus {
   DEAD_LETTER
 }
 
+enum ChartExtractionJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
 model User {
   id                    String                  @id @default(cuid())
   email                 String                  @unique
@@ -144,6 +151,7 @@ model User {
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
 
+  memberships           Membership[]
   appointmentsCreated   Appointment[]           @relation("AppointmentCreatedBy")
   appointmentsProvided  Appointment[]           @relation("AppointmentProvider")
   encountersProvided    Encounter[]             @relation("EncounterProvider")
@@ -162,6 +170,52 @@ model User {
   userSettings          UserSettings?
 }
 
+model Organization {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships           Membership[]
+  patients              Patient[]
+  appointments          Appointment[]
+  encounters            Encounter[]
+  notes                 Note[]
+  noteVersions          NoteVersion[]
+  transcriptSegments    TranscriptSegment[]
+  chartAssets           ChartAsset[]
+  chartExtractionJobs   ChartExtractionJob[]
+  suggestionGenerations SuggestionGeneration[]
+  codeSuggestions        CodeSuggestion[]
+  codeSelections         CodeSelection[]
+  complianceIssues      ComplianceIssue[]
+  wizardRuns            WizardRun[]
+  wizardStepStates      WizardStepState[]
+  exportArtifacts       ExportArtifact[]
+  auditLogs             AuditLog[]
+  authSessions          AuthSession[]
+  dispatchJobs          DispatchJob[]
+
+  @@index([createdAt])
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      UserRole @default(CLINICIAN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
+}
+
 model UserSettings {
   id         String   @id @default(cuid())
   userId     String   @unique
@@ -177,7 +231,8 @@ model UserSettings {
 
 model Patient {
   id           String        @id @default(cuid())
-  externalId   String        @unique
+  orgId        String
+  externalId   String
   firstName    String
   lastName     String
   dateOfBirth  DateTime?
@@ -187,14 +242,19 @@ model Patient {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   encounters   Encounter[]
   chartAssets  ChartAsset[]
+
+  @@unique([orgId, externalId])
+  @@index([orgId])
 }
 
 model Appointment {
   id              String              @id @default(cuid())
-  externalId      String              @unique
+  orgId           String
+  externalId      String
   patientId       String
   providerId      String?
   createdById     String?
@@ -209,20 +269,24 @@ model Appointment {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
+  organization    Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   provider        User?               @relation("AppointmentProvider", fields: [providerId], references: [id], onDelete: SetNull)
   createdBy       User?               @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   encounter       Encounter?
   chartAssets     ChartAsset[]
 
+  @@unique([orgId, externalId])
   @@index([scheduledAt])
   @@index([providerId])
   @@index([patientId])
+  @@index([orgId])
 }
 
 model Encounter {
   id                 String            @id @default(cuid())
-  externalId         String            @unique
+  orgId              String
+  externalId         String
   appointmentId      String?           @unique
   patientId          String
   providerId         String?
@@ -235,6 +299,7 @@ model Encounter {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
+  organization       Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   appointment        Appointment?      @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   patient            Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   provider           User?             @relation("EncounterProvider", fields: [providerId], references: [id], onDelete: SetNull)
@@ -251,12 +316,15 @@ model Encounter {
   auditLogs          AuditLog[]
   dispatchJobs       DispatchJob[]
 
+  @@unique([orgId, externalId])
   @@index([status])
   @@index([patientId])
+  @@index([orgId])
 }
 
 model Note {
   id            String         @id @default(cuid())
+  orgId         String
   encounterId   String         @unique
   status        NoteStatus     @default(DRAFT_HIDDEN)
   visibility    NoteVisibility @default(HIDDEN)
@@ -269,16 +337,20 @@ model Note {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
+  organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter     Encounter      @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   createdBy     User?          @relation("NoteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy     User?          @relation("NoteUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   versions      NoteVersion[]
   exportArtifacts ExportArtifact[]
   dispatchJobs  DispatchJob[]
+
+  @@index([orgId, updatedAt])
 }
 
 model NoteVersion {
   id            String   @id @default(cuid())
+  orgId          String
   noteId         String
   versionNumber  Int
   source         String
@@ -288,15 +360,21 @@ model NoteVersion {
   createdById    String?
   createdAt      DateTime @default(now())
 
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   note           Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
   createdBy      User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([noteId, versionNumber])
   @@index([noteId, createdAt])
+  @@index([orgId, createdAt])
 }
 
+/// Transcript text is PHI.
+/// - Never send raw transcript strings to any external model provider.
+/// - Retention policy redacts `text` according to `TRANSCRIPT_RETENTION_DAYS`.
 model TranscriptSegment {
   id          String           @id @default(cuid())
+  orgId        String
   encounterId String
   speaker     String
   speakerLabel String?
@@ -307,13 +385,17 @@ model TranscriptSegment {
   confidence  Float?
   createdAt   DateTime         @default(now())
 
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter   Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
 
   @@index([encounterId, createdAt])
+  @@index([orgId, createdAt])
 }
 
 model ChartAsset {
+  /// Chart documents are PHI. Never send `rawText` to external model providers.
   id           String      @id @default(cuid())
+  orgId        String
   appointmentId String?
   encounterId  String?
   patientId    String?
@@ -326,17 +408,42 @@ model ChartAsset {
   createdById  String?
   createdAt    DateTime    @default(now())
 
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   appointment  Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   encounter    Encounter?   @relation(fields: [encounterId], references: [id], onDelete: SetNull)
   patient      Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
   createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  extractionJob ChartExtractionJob?
 
   @@index([encounterId])
   @@index([patientId])
+  @@index([orgId])
+}
+
+/// Background extraction job for chart text (PHI).
+/// Raw extracted text is stored on the linked ChartAsset (rawText) and never sent to external LLMs.
+model ChartExtractionJob {
+  id           String                 @id @default(cuid())
+  orgId        String
+  chartAssetId String                 @unique
+  status       ChartExtractionJobStatus @default(QUEUED)
+  attemptCount Int                    @default(0)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  lastError    String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  organization Organization           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  chartAsset   ChartAsset             @relation(fields: [chartAssetId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model SuggestionGeneration {
   id              String          @id @default(cuid())
+  orgId           String
   encounterId     String
   trigger         String
   textDelta       Int             @default(0)
@@ -345,15 +452,18 @@ model SuggestionGeneration {
   createdById     String?
   createdAt       DateTime        @default(now())
 
+  organization    Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter       Encounter       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   createdBy       User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
   suggestions     CodeSuggestion[]
 
   @@index([encounterId, createdAt])
+  @@index([orgId, createdAt])
 }
 
 model CodeSuggestion {
   id            String             @id @default(cuid())
+  orgId         String
   encounterId   String
   generationId  String
   code          String
@@ -370,16 +480,19 @@ model CodeSuggestion {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
+  organization  Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter     Encounter          @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   generation    SuggestionGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
   selections    CodeSelection[]
 
   @@index([encounterId, status])
   @@index([generationId])
+  @@index([orgId, status])
 }
 
 model CodeSelection {
   id              String           @id @default(cuid())
+  orgId           String
   encounterId     String
   codeSuggestionId String?
   code            String
@@ -390,16 +503,19 @@ model CodeSelection {
   actorId         String?
   createdAt       DateTime         @default(now())
 
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter       Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   codeSuggestion  CodeSuggestion?  @relation(fields: [codeSuggestionId], references: [id], onDelete: SetNull)
   actor           User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([encounterId, code])
   @@index([codeSuggestionId])
+  @@index([orgId, createdAt])
 }
 
 model ComplianceIssue {
   id           String            @id @default(cuid())
+  orgId        String
   encounterId  String
   severity     ComplianceSeverity
   status       ComplianceStatus  @default(ACTIVE)
@@ -415,29 +531,35 @@ model ComplianceIssue {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter    Encounter         @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   actor        User?             @relation("ComplianceActor", fields: [actorId], references: [id], onDelete: SetNull)
 
-  @@unique([encounterId, fingerprint])
+  @@unique([orgId, encounterId, fingerprint])
   @@index([encounterId, status])
+  @@index([orgId, status])
 }
 
 model WizardRun {
   id          String          @id @default(cuid())
+  orgId       String
   encounterId String
   status      WizardRunStatus @default(IN_PROGRESS)
   runState    Json?
   startedAt   DateTime        @default(now())
   completedAt DateTime?
 
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter   Encounter       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   stepStates  WizardStepState[]
 
   @@index([encounterId, startedAt])
+  @@index([orgId, startedAt])
 }
 
 model WizardStepState {
   id           String           @id @default(cuid())
+  orgId        String
   wizardRunId  String
   encounterId  String
   step         WizardStep
@@ -447,16 +569,19 @@ model WizardStepState {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   wizardRun    WizardRun        @relation(fields: [wizardRunId], references: [id], onDelete: Cascade)
   encounter    Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   lastActor    User?            @relation("WizardActor", fields: [lastActorId], references: [id], onDelete: SetNull)
 
-  @@unique([wizardRunId, step])
+  @@unique([orgId, wizardRunId, step])
   @@index([encounterId, step])
+  @@index([orgId, step])
 }
 
 model ExportArtifact {
   id           String       @id @default(cuid())
+  orgId        String
   encounterId  String
   noteId       String?
   type         ArtifactType
@@ -467,15 +592,18 @@ model ExportArtifact {
   createdById  String?
   createdAt    DateTime     @default(now())
 
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter    Encounter    @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   note         Note?        @relation(fields: [noteId], references: [id], onDelete: SetNull)
   createdBy    User?        @relation("ExportCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([encounterId, type])
+  @@index([orgId, type])
 }
 
 model AuditLog {
   id          String    @id @default(cuid())
+  orgId       String
   actorId     String?
   encounterId String?
   action      String
@@ -486,14 +614,17 @@ model AuditLog {
   details     Json?
   createdAt   DateTime  @default(now())
 
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   actor       User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
   encounter   Encounter? @relation(fields: [encounterId], references: [id], onDelete: SetNull)
 
   @@index([encounterId, createdAt])
+  @@index([orgId, createdAt])
 }
 
 model AuthSession {
   id                String    @id @default(cuid())
+  orgId             String
   userId            String
   refreshTokenHash  String    @unique
   expiresAt         DateTime
@@ -503,13 +634,16 @@ model AuthSession {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+  @@index([orgId, expiresAt])
 }
 
 model DispatchJob {
   id             String         @id @default(cuid())
+  orgId          String
   encounterId    String
   noteId         String?
   target         DispatchTarget @default(NONE)
@@ -528,10 +662,12 @@ model DispatchJob {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  organization   Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   encounter      Encounter      @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   note           Note?          @relation(fields: [noteId], references: [id], onDelete: SetNull)
   createdBy      User?          @relation("DispatchCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([status, nextRetryAt])
   @@index([encounterId, createdAt])
+  @@index([orgId, status])
 }

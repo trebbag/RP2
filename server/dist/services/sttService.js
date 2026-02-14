@@ -5,6 +5,7 @@ import { buildPromptBundle } from "./promptBuilderService.js";
 import { enforceDiarizationGuardrails } from "./aiGuardrailService.js";
 import { deidentifyText } from "../ai/deidentify.js";
 import { logger } from "../lib/logger.js";
+import { getTranscriptionProvider } from "./transcription/providerFactory.js";
 const diarizationSchema = z.object({
     segments: z
         .array(z.object({
@@ -115,18 +116,39 @@ export async function diarizeTranscriptText(input) {
 }
 export async function transcribeAndDiarizeAudio(input) {
     const warnings = [];
-    const provider = "fallback";
-    const transcriptText = "";
-    if (!transcriptText.trim()) {
-        warnings.push("External STT is disabled by PHI boundary policy. Provide transcript segments through trusted local ingestion.");
-        logger.info("stt.external_disabled_by_phi_boundary", {
+    const provider = getTranscriptionProvider();
+    let transcriptTextPhi;
+    try {
+        const transcription = await provider.transcribeAudioChunk({
             filePath: input.filePath,
             mimeType: input.mimeType
+        });
+        transcriptTextPhi = transcription.transcriptText;
+        warnings.push(...(transcription.warnings ?? []));
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown transcription provider error";
+        warnings.push(`Transcription failed: ${message}`);
+        logger.warn("stt.transcription_provider_error", {
+            provider: provider.name,
+            mimeType: input.mimeType,
+            filePath: input.filePath
         });
         return {
             transcriptText: "",
             segments: [],
-            provider,
+            provider: "fallback",
+            warnings,
+            diarizationTrace: undefined
+        };
+    }
+    const transcriptText = transcriptTextPhi.trim();
+    if (!transcriptText) {
+        warnings.push("No transcript text returned for audio chunk.");
+        return {
+            transcriptText: "",
+            segments: [],
+            provider: provider.name,
             warnings,
             diarizationTrace: undefined
         };
@@ -162,7 +184,7 @@ export async function transcribeAndDiarizeAudio(input) {
     return {
         transcriptText,
         segments,
-        provider,
+        provider: provider.name,
         warnings,
         diarizationTrace: diarized.trace
     };

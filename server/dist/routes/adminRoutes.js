@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 import { requireRole } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
 import { runAuditRetentionPolicy } from "../services/auditRetentionService.js";
+import { runTranscriptRetentionPolicy } from "../services/transcriptRetentionService.js";
 import { writeAuditLog } from "../middleware/audit.js";
 import { getBillingSchedulePack, saveBillingSchedulePack } from "../services/billingService.js";
 import { getSecretRotationStatus, recordSecretRotationEvent } from "../services/secretRotationService.js";
@@ -16,8 +17,10 @@ const retentionSchema = z.object({
 export const adminRoutes = Router();
 adminRoutes.post("/audit-retention/enforce", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        const authReq = req;
         const payload = retentionSchema.parse(req.body);
         const report = await runAuditRetentionPolicy({
+            orgId: authReq.user.orgId,
             dryRun: payload.dryRun
         });
         await writeAuditLog({
@@ -25,6 +28,28 @@ adminRoutes.post("/audit-retention/enforce", requireRole(["ADMIN"]), async (req,
             res,
             action: "audit_retention_enforce",
             entity: "audit_log",
+            entityId: "retention-policy",
+            details: report
+        });
+        res.status(200).json({ report });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+adminRoutes.post("/transcript-retention/enforce", requireRole(["ADMIN"]), async (req, res, next) => {
+    try {
+        const authReq = req;
+        const payload = retentionSchema.parse(req.body);
+        const report = await runTranscriptRetentionPolicy({
+            orgId: authReq.user.orgId,
+            dryRun: payload.dryRun
+        });
+        await writeAuditLog({
+            req,
+            res,
+            action: "transcript_retention_enforce",
+            entity: "transcript_segment",
             entityId: "retention-policy",
             details: report
         });
@@ -138,8 +163,9 @@ function buildObservabilityTrendPoints(windowMinutes, requestedBucketMinutes) {
 }
 adminRoutes.post("/dispatch/retry-due", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        const authReq = req;
         const payload = dispatchRetrySchema.parse(req.body ?? {});
-        const processed = await processDueDispatchJobs(payload.limit);
+        const processed = await processDueDispatchJobs(payload.limit, authReq.user.orgId);
         await writeAuditLog({
             req,
             res,
@@ -167,8 +193,10 @@ adminRoutes.post("/dispatch/retry-due", requireRole(["ADMIN"]), async (req, res,
 });
 adminRoutes.get("/dispatch/jobs", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        const authReq = req;
         const payload = dispatchListSchema.parse(req.query ?? {});
         const jobs = await listDispatchJobs({
+            orgId: authReq.user.orgId,
             status: payload.status,
             encounterId: payload.encounterId,
             limit: payload.limit
@@ -199,7 +227,7 @@ adminRoutes.get("/dispatch/jobs", requireRole(["ADMIN"]), async (req, res, next)
 adminRoutes.post("/dispatch/:jobId/replay", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
         const authReq = req;
-        const replayed = await replayDispatchJob(req.params.jobId, authReq.user.id);
+        const replayed = await replayDispatchJob(req.params.jobId, authReq.user.orgId, authReq.user.id);
         if (!replayed) {
             res.status(404).json({ error: "Dispatch job not found" });
             return;
@@ -234,7 +262,7 @@ adminRoutes.post("/dispatch/:jobId/dead-letter", requireRole(["ADMIN"]), async (
     try {
         const authReq = req;
         const payload = deadLetterSchema.parse(req.body ?? {});
-        const deadLettered = await markDispatchJobDeadLetter(req.params.jobId, payload.reason, authReq.user.id);
+        const deadLettered = await markDispatchJobDeadLetter(req.params.jobId, authReq.user.orgId, payload.reason, authReq.user.id);
         if (!deadLettered) {
             res.status(404).json({ error: "Dispatch job not found" });
             return;
@@ -337,9 +365,10 @@ adminRoutes.get("/dispatch/sandbox-readiness", requireRole(["ADMIN"]), async (re
         next(error);
     }
 });
-adminRoutes.get("/security/secret-rotation/status", requireRole(["ADMIN"]), async (_req, res, next) => {
+adminRoutes.get("/security/secret-rotation/status", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
-        const status = await getSecretRotationStatus();
+        const authReq = req;
+        const status = await getSecretRotationStatus(authReq.user.orgId);
         res.status(200).json({ status });
     }
     catch (error) {
@@ -351,6 +380,7 @@ adminRoutes.post("/security/secret-rotation/record", requireRole(["ADMIN"]), asy
         const authReq = req;
         const payload = secretRotationRecordSchema.parse(req.body ?? {});
         const recorded = await recordSecretRotationEvent({
+            orgId: authReq.user.orgId,
             actorId: authReq.user.id,
             ticketId: payload.ticketId,
             secrets: payload.secrets,
@@ -376,20 +406,23 @@ adminRoutes.post("/security/secret-rotation/record", requireRole(["ADMIN"]), asy
 });
 adminRoutes.get("/users", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        const authReq = req;
         const payload = userListSchema.parse(req.query ?? {});
-        const users = await prisma.user.findMany({
-            orderBy: { createdAt: "desc" },
-            take: payload.limit
+        const memberships = await prisma.membership.findMany({
+            where: { orgId: authReq.user.orgId },
+            orderBy: { user: { createdAt: "desc" } },
+            take: payload.limit,
+            include: { user: true }
         });
         res.status(200).json({
-            users: users.map((user) => ({
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                mfaEnabled: user.mfaEnabled,
-                mfaEnrolledAt: user.mfaEnrolledAt,
-                createdAt: user.createdAt
+            users: memberships.map((membership) => ({
+                id: membership.user.id,
+                email: membership.user.email,
+                name: membership.user.name,
+                role: membership.role,
+                mfaEnabled: membership.user.mfaEnabled,
+                mfaEnrolledAt: membership.user.mfaEnrolledAt,
+                createdAt: membership.user.createdAt
             }))
         });
     }
@@ -401,6 +434,18 @@ adminRoutes.post("/users/:userId/mfa/reset", requireRole(["ADMIN"]), async (req,
     try {
         const authReq = req;
         const payload = mfaResetSchema.parse(req.body ?? {});
+        const membership = await prisma.membership.findUnique({
+            where: {
+                orgId_userId: {
+                    orgId: authReq.user.orgId,
+                    userId: req.params.userId
+                }
+            }
+        });
+        if (!membership) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
         const existing = await prisma.user.findUnique({
             where: { id: req.params.userId }
         });
@@ -444,12 +489,14 @@ adminRoutes.post("/users/:userId/mfa/reset", requireRole(["ADMIN"]), async (req,
 });
 adminRoutes.get("/observability/summary", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        const authReq = req;
         const payload = observabilitySchema.parse(req.query ?? {});
         const windowStart = new Date(Date.now() - payload.windowMinutes * 60 * 1000);
         const [dlq, authFailures, sttIngest, dispatchTerminal, suggestionDecisionCount, suggestionAcceptedCount, suggestionRemovedCount, sttCorrectionCount, sttSegmentCount, complianceDismissedCount, complianceResolvedCount, complianceActiveCount] = await Promise.all([
-            deadLetterSummary(payload.windowMinutes),
+            deadLetterSummary(payload.windowMinutes, authReq.user.orgId),
             prisma.auditLog.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     action: {
                         in: ["auth_login_failed", "auth_mfa_failed", "auth_refresh_failed"]
                     },
@@ -458,6 +505,7 @@ adminRoutes.get("/observability/summary", requireRole(["ADMIN"]), async (req, re
             }),
             prisma.auditLog.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     action: "transcript_audio_ingested",
                     createdAt: { gte: windowStart }
                 },
@@ -466,17 +514,20 @@ adminRoutes.get("/observability/summary", requireRole(["ADMIN"]), async (req, re
             }),
             prisma.dispatchJob.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     status: { in: [DispatchStatus.DEAD_LETTER, DispatchStatus.FAILED] },
                     updatedAt: { gte: windowStart }
                 }
             }),
             prisma.codeSelection.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     createdAt: { gte: windowStart }
                 }
             }),
             prisma.codeSelection.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     createdAt: { gte: windowStart },
                     action: {
                         in: ["KEEP", "ADD_FROM_SUGGESTION", "MOVE_TO_DIAGNOSIS", "MOVE_TO_DIFFERENTIAL"]
@@ -485,33 +536,39 @@ adminRoutes.get("/observability/summary", requireRole(["ADMIN"]), async (req, re
             }),
             prisma.codeSelection.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     createdAt: { gte: windowStart },
                     action: "REMOVE"
                 }
             }),
             prisma.auditLog.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     action: "transcript_segment_corrected",
                     createdAt: { gte: windowStart }
                 }
             }),
             prisma.transcriptSegment.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     createdAt: { gte: windowStart }
                 }
             }),
             prisma.complianceIssue.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     dismissedAt: { gte: windowStart }
                 }
             }),
             prisma.complianceIssue.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     resolvedAt: { gte: windowStart }
                 }
             }),
             prisma.complianceIssue.count({
                 where: {
+                    orgId: authReq.user.orgId,
                     status: "ACTIVE"
                 }
             })
@@ -584,6 +641,7 @@ adminRoutes.get("/observability/summary", requireRole(["ADMIN"]), async (req, re
 });
 adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res, next) => {
     try {
+        const authReq = req;
         const payload = observabilityTrendSchema.parse(req.query ?? {});
         const trend = buildObservabilityTrendPoints(payload.windowMinutes, payload.bucketMinutes);
         const windowStart = new Date(trend.startMs);
@@ -592,6 +650,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
         const [dispatchRows, sttIngestRows, authFailureRows, suggestionDecisionRows, transcriptCorrectionRows, transcriptSegmentRows, complianceDismissedRows, complianceResolvedRows] = await Promise.all([
             prisma.dispatchJob.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     status: { in: [DispatchStatus.DEAD_LETTER, DispatchStatus.FAILED] },
                     updatedAt: { gte: windowStart, lt: windowEnd }
                 },
@@ -602,6 +661,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.auditLog.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     action: "transcript_audio_ingested",
                     createdAt: { gte: windowStart, lt: windowEnd }
                 },
@@ -612,6 +672,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.auditLog.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     action: {
                         in: ["auth_login_failed", "auth_mfa_failed", "auth_refresh_failed"]
                     },
@@ -623,6 +684,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.codeSelection.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     createdAt: { gte: windowStart, lt: windowEnd }
                 },
                 select: {
@@ -632,6 +694,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.auditLog.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     action: "transcript_segment_corrected",
                     createdAt: { gte: windowStart, lt: windowEnd }
                 },
@@ -641,6 +704,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.transcriptSegment.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     createdAt: { gte: windowStart, lt: windowEnd }
                 },
                 select: {
@@ -649,6 +713,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.complianceIssue.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     dismissedAt: { gte: windowStart, lt: windowEnd }
                 },
                 select: {
@@ -657,6 +722,7 @@ adminRoutes.get("/observability/trends", requireRole(["ADMIN"]), async (req, res
             }),
             prisma.complianceIssue.findMany({
                 where: {
+                    orgId: authReq.user.orgId,
                     resolvedAt: { gte: windowStart, lt: windowEnd }
                 },
                 select: {

@@ -1,4 +1,5 @@
 import { env } from "../config/env.js"
+import { TRANSCRIPT_TEXT_REDACTED } from "./transcriptRetentionService.js"
 
 export interface TranscriptQualitySegment {
   id?: string
@@ -62,6 +63,7 @@ export function buildTranscriptQualityReport(segments: TranscriptQualitySegment[
     const segment = sorted[index]
     const normalizedSpeaker = normalizeSpeaker(segment.speaker)
     const normalizedText = segment.text.trim()
+    const isRedactedText = normalizedText.length === 0 || normalizedText === TRANSCRIPT_TEXT_REDACTED
 
     if (typeof segment.confidence === "number") {
       confidenceTotal += segment.confidence
@@ -77,7 +79,7 @@ export function buildTranscriptQualityReport(segments: TranscriptQualitySegment[
       }
     }
 
-    if (normalizedText.split(/\s+/).filter(Boolean).length <= VERY_SHORT_TEXT_THRESHOLD) {
+    if (!isRedactedText && normalizedText.split(/\s+/).filter(Boolean).length <= VERY_SHORT_TEXT_THRESHOLD) {
       veryShortSegmentCount += 1
       issues.push({
         code: "VERY_SHORT_SEGMENT",
@@ -119,7 +121,10 @@ export function buildTranscriptQualityReport(segments: TranscriptQualitySegment[
   const unknownSpeakerPenalty = Math.min(25, unknownSpeakerCount * 5)
   const shortSegmentPenalty = Math.min(20, veryShortSegmentCount * 2)
   const switchPenalty = speakerSwitchRate > 0.8 ? 12 : speakerSwitchRate > 0.65 ? 6 : 0
-  const score = Math.max(0, Math.round(100 - lowConfidencePenalty - unknownSpeakerPenalty - shortSegmentPenalty - switchPenalty))
+  const score = Math.max(
+    0,
+    Math.round(100 - lowConfidencePenalty - unknownSpeakerPenalty - shortSegmentPenalty - switchPenalty)
+  )
 
   const needsReview = score < 78 || lowConfidenceCount >= 2 || unknownSpeakerCount >= 1 || unstableSwitching
 

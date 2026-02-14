@@ -3,16 +3,17 @@ import path from "node:path"
 import { Router } from "express"
 import multer from "multer"
 import { z } from "zod"
-import { AppointmentPriority, AppointmentStatus, ArtifactType, type UserRole } from "@prisma/client"
+import { AppointmentPriority, AppointmentStatus, type UserRole } from "@prisma/client"
 import { env } from "../config/env.js"
 import { prisma } from "../lib/prisma.js"
+import { transactional } from "../lib/transactional.js"
 import { ApiError } from "../middleware/errorHandler.js"
 import type { AuthenticatedRequest } from "../types.js"
 import { createExternalAppointmentId, createExternalEncounterId, createExternalPatientId } from "../utils/id.js"
 import { ensureDir } from "../utils/fs.js"
 import { writeAuditLog } from "../middleware/audit.js"
-import { extractStructuredChart, persistStructuredChart } from "../services/chartExtractionService.js"
 import { requireRole } from "../middleware/auth.js"
+import { ensureMembership } from "../services/tenantService.js"
 
 const appointmentCreateSchema = z.object({
   patientId: z.string().optional(),
@@ -54,7 +55,7 @@ function splitName(name: string): { firstName: string; lastName: string } {
   return { firstName, lastName }
 }
 
-async function resolveProvider(providerName: string | undefined, fallbackUserId: string) {
+async function resolveProvider(orgId: string, providerName: string | undefined, fallbackUserId: string) {
   if (!providerName) {
     return fallbackUserId
   }
@@ -71,12 +72,19 @@ async function resolveProvider(providerName: string | undefined, fallbackUserId:
     }
   })
 
+  await ensureMembership({
+    orgId,
+    userId: user.id,
+    role: "CLINICIAN"
+  })
+
   return user.id
 }
 
-async function resolveAppointment(appointmentId: string) {
+async function resolveAppointment(orgId: string, appointmentId: string) {
   return prisma.appointment.findFirst({
     where: {
+      orgId,
       OR: [{ id: appointmentId }, { externalId: appointmentId }]
     },
     include: {
@@ -149,9 +157,11 @@ function mapAppointmentForClient(record: AppointmentRecordLike | null) {
 export const appointmentRoutes = Router()
 appointmentRoutes.use(requireRole(["ADMIN", "MA", "CLINICIAN"]))
 
-appointmentRoutes.get("/", async (_req, res, next) => {
+appointmentRoutes.get("/", async (req, res, next) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest
     const records = await prisma.appointment.findMany({
+      where: { orgId: authReq.user.orgId },
       orderBy: { scheduledAt: "asc" },
       include: {
         patient: true,
@@ -183,10 +193,15 @@ appointmentRoutes.post("/", async (req, res, next) => {
     const patientNames = splitName(payload.patientName)
     const externalPatientId = payload.patientId ?? createExternalPatientId()
 
-    const providerId = await resolveProvider(payload.provider, authReq.user.id)
+    const providerId = await resolveProvider(authReq.user.orgId, payload.provider, authReq.user.id)
 
     const patient = await prisma.patient.upsert({
-      where: { externalId: externalPatientId },
+      where: {
+        orgId_externalId: {
+          orgId: authReq.user.orgId,
+          externalId: externalPatientId
+        }
+      },
       update: {
         firstName: patientNames.firstName,
         lastName: patientNames.lastName,
@@ -194,6 +209,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
         email: payload.patientEmail
       },
       create: {
+        orgId: authReq.user.orgId,
         externalId: externalPatientId,
         firstName: patientNames.firstName,
         lastName: patientNames.lastName,
@@ -202,9 +218,10 @@ appointmentRoutes.post("/", async (req, res, next) => {
       }
     })
 
-    const created = await prisma.$transaction(async (tx) => {
+    const created = await transactional(async (tx) => {
       const appointment = await tx.appointment.create({
         data: {
+          orgId: authReq.user.orgId,
           externalId: createExternalAppointmentId(),
           patientId: patient.id,
           providerId,
@@ -227,6 +244,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
 
       const encounter = await tx.encounter.create({
         data: {
+          orgId: authReq.user.orgId,
           externalId: createExternalEncounterId(new Date(payload.appointmentTime)),
           appointmentId: appointment.id,
           patientId: patient.id,
@@ -238,6 +256,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
 
       const note = await tx.note.create({
         data: {
+          orgId: authReq.user.orgId,
           encounterId: encounter.id,
           status: "DRAFT_HIDDEN",
           visibility: "HIDDEN",
@@ -250,6 +269,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
 
       await tx.noteVersion.create({
         data: {
+          orgId: authReq.user.orgId,
           noteId: note.id,
           versionNumber: 1,
           source: "appointment-create",
@@ -259,8 +279,8 @@ appointmentRoutes.post("/", async (req, res, next) => {
         }
       })
 
-      return tx.appointment.findUniqueOrThrow({
-        where: { id: appointment.id },
+      return tx.appointment.findFirstOrThrow({
+        where: { id: appointment.id, orgId: authReq.user.orgId },
         include: {
           patient: true,
           encounter: true,
@@ -291,7 +311,7 @@ appointmentRoutes.post("/", async (req, res, next) => {
 appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async (req, res, next) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest
-    const appointment = await resolveAppointment(req.params.appointmentId)
+    const appointment = await resolveAppointment(authReq.user.orgId, req.params.appointmentId)
     if (!appointment) {
       throw new ApiError(404, "Appointment not found")
     }
@@ -308,26 +328,16 @@ appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async 
     const createdAssets = [] as Array<{
       id: string
       fileName: string
-      extractedJson: Record<string, unknown>
+      jobStatus: string
     }>
 
     for (const file of files) {
       const destinationPath = path.resolve(chartDir, file.filename)
       await fs.rename(file.path, destinationPath)
-      const extraction = await extractStructuredChart({
-        filePath: destinationPath,
-        fileName: file.originalname,
-        mimeType: file.mimetype,
-        patientId: appointment.patient.externalId,
-        encounterId: appointment.encounter?.externalId
-      })
-
-      const structuredFileName = `${path.parse(file.filename).name}.structured.json`
-      const structuredPath = path.resolve(chartDir, structuredFileName)
-      const structuredSizeBytes = await persistStructuredChart(structuredPath, extraction.extractedJson)
 
       const asset = await prisma.chartAsset.create({
         data: {
+          orgId: authReq.user.orgId,
           appointmentId: appointment.id,
           encounterId,
           patientId: appointment.patient.id,
@@ -335,31 +345,21 @@ appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async 
           mimeType: file.mimetype,
           sizeBytes: file.size,
           storagePath: destinationPath,
-          extractedJson: extraction.extractedJson as never,
-          rawText: extraction.rawText,
           createdById: authReq.user.id
         }
       })
 
-      if (appointment.encounter) {
-        await prisma.exportArtifact.create({
-          data: {
-            encounterId: appointment.encounter.id,
-            noteId: appointment.encounter.note?.id,
-            type: ArtifactType.STRUCTURED_CHART_JSON,
-            filePath: structuredPath,
-            mimeType: "application/json",
-            fileName: structuredFileName,
-            sizeBytes: structuredSizeBytes,
-            createdById: authReq.user.id
-          }
-        })
-      }
+      await prisma.chartExtractionJob.create({
+        data: {
+          orgId: authReq.user.orgId,
+          chartAssetId: asset.id
+        }
+      })
 
       createdAssets.push({
         id: asset.id,
         fileName: file.originalname,
-        extractedJson: extraction.extractedJson as unknown as Record<string, unknown>
+        jobStatus: "QUEUED"
       })
     }
 
@@ -378,7 +378,59 @@ appointmentRoutes.post("/:appointmentId/chart", upload.array("files", 5), async 
     res.status(201).json({
       uploaded: createdAssets,
       count: createdAssets.length,
+      extraction: {
+        status: "queued",
+        next: "Worker will extract text asynchronously. Poll /api/appointments/:appointmentId/charts for status."
+      },
       encounterId: appointment.encounter?.externalId
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+appointmentRoutes.get("/:appointmentId/charts", async (req, res, next) => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest
+    const appointment = await resolveAppointment(authReq.user.orgId, req.params.appointmentId)
+    if (!appointment) {
+      throw new ApiError(404, "Appointment not found")
+    }
+
+    const includeText = req.query.includeText === "1" || req.query.includeText === "true"
+
+    const charts = await prisma.chartAsset.findMany({
+      where: {
+        orgId: authReq.user.orgId,
+        appointmentId: appointment.id
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        extractionJob: true
+      }
+    })
+
+    res.status(200).json({
+      charts: charts.map((chart) => ({
+        id: chart.id,
+        fileName: chart.fileName,
+        mimeType: chart.mimeType,
+        sizeBytes: chart.sizeBytes,
+        createdAt: chart.createdAt.toISOString(),
+        extractionJob: chart.extractionJob
+          ? {
+              id: chart.extractionJob.id,
+              status: chart.extractionJob.status,
+              attemptCount: chart.extractionJob.attemptCount,
+              startedAt: chart.extractionJob.startedAt?.toISOString() ?? null,
+              finishedAt: chart.extractionJob.finishedAt?.toISOString() ?? null,
+              lastError: chart.extractionJob.lastError ?? null
+            }
+          : null,
+        extractedJson: chart.extractedJson,
+        extractedTextLength: chart.rawText ? chart.rawText.length : 0,
+        extractedText: includeText ? chart.rawText : undefined
+      }))
     })
   } catch (error) {
     next(error)

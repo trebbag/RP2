@@ -1,11 +1,11 @@
 import { motion } from "motion/react"
-import { 
-  FileText, 
-  FilePlus, 
-  BarChart3, 
-  Calendar, 
-  TrendingUp, 
-  Settings, 
+import {
+  FileText,
+  FilePlus,
+  BarChart3,
+  Calendar,
+  TrendingUp,
+  Settings,
   CreditCard,
   ChevronRight,
   Plus,
@@ -34,7 +34,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     notesCompleted: 8,
     patientsScheduled: 12,
     avgConfidence: 92,
-    revenueGenerated: 2847.50
+    revenueGenerated: 2847.5
   }
 
   const qualityMeasures = [
@@ -45,7 +45,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       trend: "+2.1%"
     },
     {
-      name: "Documentation Completeness", 
+      name: "Documentation Completeness",
       current: 89,
       target: 90,
       trend: "+1.5%"
@@ -70,7 +70,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     {
       patient: "Michael Rodriguez",
       visitType: "Follow-up",
-      lastModified: "45 minutes ago", 
+      lastModified: "45 minutes ago",
       completion: 60,
       urgency: "high",
       avatar: "MR"
@@ -96,7 +96,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       color: "emerald" // Completed - green theme
     },
     {
-      time: "9:30 AM", 
+      time: "9:30 AM",
       patient: "Lisa Thompson",
       type: "Follow-up",
       status: "in-progress",
@@ -117,7 +117,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       time: "10:30 AM",
       patient: "Amanda Miller",
       type: "Wellness Check",
-      status: "scheduled", 
+      status: "scheduled",
       room: "Room C",
       avatar: "AM",
       color: "violet" // Wellness - purple theme
@@ -138,7 +138,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       title: "New Note",
       description: "Start Documentation",
       icon: FilePlus,
-      action: () => onNavigate('app'),
+      action: () => onNavigate("app"),
       primary: true,
       stats: "~3 min avg",
       theme: "indigo"
@@ -147,16 +147,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       title: "Schedule Builder",
       description: "Manage Appointments",
       icon: Calendar,
-      action: () => onNavigate('builder'),
+      action: () => onNavigate("builder"),
       primary: false,
-      stats: `${todaysSchedule.filter(apt => apt.status === 'scheduled').length} pending`,
+      stats: `${todaysSchedule.filter((apt) => apt.status === "scheduled").length} pending`,
       theme: "teal"
     },
     {
       title: "Admin Panel",
       description: "System Controls",
       icon: Settings,
-      action: () => onNavigate('settings'),
+      action: () => onNavigate("settings"),
       primary: false,
       stats: "2 alerts",
       theme: "rose"
@@ -172,88 +172,88 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     }
   ]
 
-  const getColorClasses = (color: string, type: 'bg' | 'text' | 'border' | 'hover') => {
+  const getColorClasses = (color: string, type: "bg" | "text" | "border" | "hover") => {
     const colorMap = {
       blue: {
-        bg: 'bg-blue-50/60',
-        text: 'text-blue-600',
-        border: 'border-blue-200/50',
-        hover: 'hover:bg-blue-100/50'
+        bg: "bg-blue-50/60",
+        text: "text-blue-600",
+        border: "border-blue-200/50",
+        hover: "hover:bg-blue-100/50"
       },
       emerald: {
-        bg: 'bg-emerald-50/60',
-        text: 'text-emerald-600',
-        border: 'border-emerald-200/50',
-        hover: 'hover:bg-emerald-100/50'
+        bg: "bg-emerald-50/60",
+        text: "text-emerald-600",
+        border: "border-emerald-200/50",
+        hover: "hover:bg-emerald-100/50"
       },
       violet: {
-        bg: 'bg-violet-50/60',
-        text: 'text-violet-600',
-        border: 'border-violet-200/50',
-        hover: 'hover:bg-violet-100/50'
+        bg: "bg-violet-50/60",
+        text: "text-violet-600",
+        border: "border-violet-200/50",
+        hover: "hover:bg-violet-100/50"
       },
       slate: {
-        bg: 'bg-slate-50/60',
-        text: 'text-slate-600',
-        border: 'border-slate-200/50',
-        hover: 'hover:bg-slate-100/50'
+        bg: "bg-slate-50/60",
+        text: "text-slate-600",
+        border: "border-slate-200/50",
+        hover: "hover:bg-slate-100/50"
       },
       indigo: {
-        bg: 'bg-indigo-50/40',
-        text: 'text-indigo-600',
-        border: 'border-indigo-200/40',
-        hover: 'hover:bg-indigo-100/50'
+        bg: "bg-indigo-50/40",
+        text: "text-indigo-600",
+        border: "border-indigo-200/40",
+        hover: "hover:bg-indigo-100/50"
       },
       teal: {
-        bg: 'bg-teal-50/40',
-        text: 'text-teal-600',
-        border: 'border-teal-200/40',
-        hover: 'hover:bg-teal-100/50'
+        bg: "bg-teal-50/40",
+        text: "text-teal-600",
+        border: "border-teal-200/40",
+        hover: "hover:bg-teal-100/50"
       },
       rose: {
-        bg: 'bg-rose-50/40',
-        text: 'text-rose-600',
-        border: 'border-rose-200/40',
-        hover: 'hover:bg-rose-100/50'
+        bg: "bg-rose-50/40",
+        text: "text-rose-600",
+        border: "border-rose-200/40",
+        hover: "hover:bg-rose-100/50"
       },
       amber: {
-        bg: 'bg-amber-50/40',
-        text: 'text-amber-600',
-        border: 'border-amber-200/40',
-        hover: 'hover:bg-amber-100/50'
+        bg: "bg-amber-50/40",
+        text: "text-amber-600",
+        border: "border-amber-200/40",
+        hover: "hover:bg-amber-100/50"
       }
     }
     return colorMap[color]?.[type] || colorMap.slate[type]
   }
 
   const getQuickActionCardBg = (theme: string, primary: boolean) => {
-    if (primary) return 'bg-indigo-50/40 border-indigo-200/40'
-    
+    if (primary) return "bg-indigo-50/40 border-indigo-200/40"
+
     const cardBgMap = {
-      indigo: 'bg-indigo-50/40 border-indigo-200/40',
-      teal: 'bg-teal-50/40 border-teal-200/40',
-      rose: 'bg-rose-50/40 border-rose-200/40',
-      amber: 'bg-amber-50/40 border-amber-200/40'
+      indigo: "bg-indigo-50/40 border-indigo-200/40",
+      teal: "bg-teal-50/40 border-teal-200/40",
+      rose: "bg-rose-50/40 border-rose-200/40",
+      amber: "bg-amber-50/40 border-amber-200/40"
     }
-    return cardBgMap[theme] || 'bg-stone-50/40 border-stone-200/40'
+    return cardBgMap[theme] || "bg-stone-50/40 border-stone-200/40"
   }
 
   const getQuickActionHover = (theme: string, primary: boolean) => {
-    if (primary) return 'hover:bg-indigo-100/50 hover:border-indigo-300/50'
-    
+    if (primary) return "hover:bg-indigo-100/50 hover:border-indigo-300/50"
+
     const hoverMap = {
-      indigo: 'hover:bg-indigo-100/50 hover:border-indigo-300/50',
-      teal: 'hover:bg-teal-100/50 hover:border-teal-300/50',
-      rose: 'hover:bg-rose-100/50 hover:border-rose-300/50',
-      amber: 'hover:bg-amber-100/50 hover:border-amber-300/50'
+      indigo: "hover:bg-indigo-100/50 hover:border-indigo-300/50",
+      teal: "hover:bg-teal-100/50 hover:border-teal-300/50",
+      rose: "hover:bg-rose-100/50 hover:border-rose-300/50",
+      amber: "hover:bg-amber-100/50 hover:border-amber-300/50"
     }
-    return hoverMap[theme] || 'hover:bg-stone-100/50 hover:border-stone-300/50'
+    return hoverMap[theme] || "hover:bg-stone-100/50 hover:border-stone-300/50"
   }
 
   return (
     <div className="min-h-screen bg-stone-50/30">
       {/* Header Section - Warm Neutral */}
-      <motion.div 
+      <motion.div
         className="bg-stone-100/40 border-b border-stone-200/30 shadow-sm"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -271,17 +271,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   <Stethoscope className="w-7 h-7 text-stone-600" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-semibold text-stone-800 mb-1">
-                    {greeting}, Dr. Johnson
-                  </h1>
-                  <p className="text-stone-600">
-                    Ready to optimize your clinical workflow
-                  </p>
+                  <h1 className="text-3xl font-semibold text-stone-800 mb-1">{greeting}, Dr. Johnson</h1>
+                  <p className="text-stone-600">Ready to optimize your clinical workflow</p>
                 </div>
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="flex items-center gap-6"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -298,9 +294,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               </div>
               <Avatar className="w-12 h-12 border-2 border-stone-200/50 shadow-sm">
-                <AvatarFallback className="bg-white text-stone-600 font-medium">
-                  DJ
-                </AvatarFallback>
+                <AvatarFallback className="bg-white text-stone-600 font-medium">DJ</AvatarFallback>
               </Avatar>
             </motion.div>
           </div>
@@ -319,52 +313,52 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <h2 className="text-xl font-semibold text-stone-800 mb-2">Quick Actions</h2>
             <p className="text-stone-600">Jump into your most important tasks</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {quickActions.map((action, index) => (
               <motion.div
                 key={action.title}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ 
+                transition={{
                   delay: 0.4 + index * 0.1,
                   duration: 0.4,
                   ease: "easeOut"
                 }}
                 whileHover={{ y: -2, transition: { duration: 0.2 } }}
               >
-                <Card 
+                <Card
                   className={`cursor-pointer transition-all duration-300 hover:shadow-lg shadow-sm backdrop-blur-sm group ${
-                    action.primary ? 'ring-1 ring-indigo-200/40' : ''
+                    action.primary ? "ring-1 ring-indigo-200/40" : ""
                   } ${getQuickActionCardBg(action.theme, action.primary)} ${getQuickActionHover(action.theme, action.primary)}`}
                   onClick={action.action}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-sm ${
-                        action.primary 
-                          ? `bg-indigo-500 text-white` 
-                          : `${getColorClasses(action.theme, 'bg')} ${getColorClasses(action.theme, 'text')}`
-                      }`}>
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-sm ${
+                          action.primary
+                            ? `bg-indigo-500 text-white`
+                            : `${getColorClasses(action.theme, "bg")} ${getColorClasses(action.theme, "text")}`
+                        }`}
+                      >
                         <action.icon className="w-5 h-5" />
                       </div>
                       <ArrowUpRight className="w-4 h-4 text-stone-400 group-hover:text-stone-600 transition-colors" />
                     </div>
-                    
+
                     <div className="space-y-1">
-                      <h3 className={`font-semibold text-stone-800 transition-colors ${
-                        action.primary 
-                          ? 'group-hover:text-indigo-700'
-                          : `group-hover:${getColorClasses(action.theme, 'text')}`
-                      }`}>
+                      <h3
+                        className={`font-semibold text-stone-800 transition-colors ${
+                          action.primary
+                            ? "group-hover:text-indigo-700"
+                            : `group-hover:${getColorClasses(action.theme, "text")}`
+                        }`}
+                      >
                         {action.title}
                       </h3>
-                      <p className="text-sm text-stone-600">
-                        {action.description}
-                      </p>
-                      <p className="text-xs text-stone-500">
-                        {action.stats}
-                      </p>
+                      <p className="text-sm text-stone-600">{action.description}</p>
+                      <p className="text-xs text-stone-500">{action.stats}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -393,12 +387,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <div>
                       <h2 className="text-xl font-semibold text-stone-800">Today's Schedule</h2>
                       <p className="text-stone-600">
-                        {todaysSchedule.filter(apt => apt.status === 'scheduled').length} appointments remaining
+                        {todaysSchedule.filter((apt) => apt.status === "scheduled").length} appointments remaining
                       </p>
                     </div>
                   </div>
                   <Badge variant="secondary" className="font-medium bg-stone-50 text-stone-700 border-stone-200/50">
-                    {todaysSchedule.filter(apt => apt.status === 'in-progress').length > 0 ? 'In Progress' : 'On Track'}
+                    {todaysSchedule.filter((apt) => apt.status === "in-progress").length > 0
+                      ? "In Progress"
+                      : "On Track"}
                   </Badge>
                 </div>
 
@@ -406,65 +402,79 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   {todaysSchedule.map((appointment, index) => (
                     <motion.div
                       key={`${appointment.time}-${appointment.patient}`}
-                      className={`group flex items-center justify-between p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                        getColorClasses(appointment.color, 'border')
-                      } ${getColorClasses(appointment.color, 'bg')} ${getColorClasses(appointment.color, 'hover')}`}
+                      className={`group flex items-center justify-between p-4 rounded-xl border transition-all duration-200 cursor-pointer ${getColorClasses(
+                        appointment.color,
+                        "border"
+                      )} ${getColorClasses(appointment.color, "bg")} ${getColorClasses(appointment.color, "hover")}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.9 + index * 0.05 }}
                       whileHover={{ x: 4 }}
-                      onClick={() => onNavigate('app')}
+                      onClick={() => onNavigate("app")}
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`text-sm font-bold text-stone-700 min-w-[70px] px-3 py-1.5 rounded-lg ${
-                          appointment.color === 'emerald' ? 'bg-emerald-100' :
-                          appointment.color === 'blue' ? 'bg-blue-100' :
-                          appointment.color === 'violet' ? 'bg-violet-100' :
-                          'bg-stone-100'
-                        }`}>
+                        <div
+                          className={`text-sm font-bold text-stone-700 min-w-[70px] px-3 py-1.5 rounded-lg ${
+                            appointment.color === "emerald"
+                              ? "bg-emerald-100"
+                              : appointment.color === "blue"
+                                ? "bg-blue-100"
+                                : appointment.color === "violet"
+                                  ? "bg-violet-100"
+                                  : "bg-stone-100"
+                          }`}
+                        >
                           {appointment.time}
                         </div>
-                        <Avatar className={`w-8 h-8 border ${
-                          appointment.color === 'emerald' ? 'border-emerald-200/50' :
-                          appointment.color === 'blue' ? 'border-blue-200/50' :
-                          appointment.color === 'violet' ? 'border-violet-200/50' :
-                          'border-stone-200/50'
-                        }`}>
-                          <AvatarFallback className={`text-xs font-medium ${
-                            appointment.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
-                            appointment.color === 'blue' ? 'bg-blue-100 text-blue-700' :
-                            appointment.color === 'violet' ? 'bg-violet-100 text-violet-700' :
-                            'bg-stone-100 text-stone-600'
-                          }`}>
+                        <Avatar
+                          className={`w-8 h-8 border ${
+                            appointment.color === "emerald"
+                              ? "border-emerald-200/50"
+                              : appointment.color === "blue"
+                                ? "border-blue-200/50"
+                                : appointment.color === "violet"
+                                  ? "border-violet-200/50"
+                                  : "border-stone-200/50"
+                          }`}
+                        >
+                          <AvatarFallback
+                            className={`text-xs font-medium ${
+                              appointment.color === "emerald"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : appointment.color === "blue"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : appointment.color === "violet"
+                                    ? "bg-violet-100 text-violet-700"
+                                    : "bg-stone-100 text-stone-600"
+                            }`}
+                          >
                             {appointment.avatar}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-semibold text-stone-800">{appointment.patient}</div>
-                          <div className="text-sm text-stone-600">{appointment.type} • {appointment.room}</div>
+                          <div className="text-sm text-stone-600">
+                            {appointment.type} • {appointment.room}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        {appointment.status === 'completed' && (
-                          <CheckCircle className="w-5 h-5 text-emerald-500" />
-                        )}
-                        {appointment.status === 'in-progress' && (
+                        {appointment.status === "completed" && <CheckCircle className="w-5 h-5 text-emerald-500" />}
+                        {appointment.status === "in-progress" && (
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                             <span className="text-xs font-medium text-blue-600">In Progress</span>
                           </div>
                         )}
-                        {appointment.status === 'scheduled' && (
-                          <Timer className="w-5 h-5 text-stone-400" />
-                        )}
+                        {appointment.status === "scheduled" && <Timer className="w-5 h-5 text-stone-400" />}
                         <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-600 transition-colors" />
                       </div>
                     </motion.div>
                   ))}
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full mt-4 font-medium border-stone-200/60 hover:bg-stone-50 text-stone-700"
-                    onClick={() => onNavigate('schedule')}
+                    onClick={() => onNavigate("schedule")}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     View Full Schedule
@@ -490,7 +500,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     </div>
                     <span className="font-semibold text-stone-800">Drafts</span>
                   </div>
-                  <Badge variant="outline" className="font-medium border-yellow-300/50 text-yellow-700 bg-yellow-100/40">
+                  <Badge
+                    variant="outline"
+                    className="font-medium border-yellow-300/50 text-yellow-700 bg-yellow-100/40"
+                  >
                     {unfinishedDrafts.length}
                   </Badge>
                 </div>
@@ -503,7 +516,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 1.1 + index * 0.1 }}
-                      onClick={() => onNavigate('app')}
+                      onClick={() => onNavigate("app")}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -514,10 +527,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                           </Avatar>
                           <span className="font-semibold text-sm text-stone-800">{draft.patient}</span>
                         </div>
-                        <Badge 
-                          variant={draft.urgency === 'high' ? 'destructive' : 'secondary'}
-                          className="text-xs"
-                        >
+                        <Badge variant={draft.urgency === "high" ? "destructive" : "secondary"} className="text-xs">
                           {draft.urgency}
                         </Badge>
                       </div>
@@ -530,7 +540,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       </div>
                     </motion.div>
                   ))}
-                  <Button variant="ghost" size="sm" className="w-full text-xs text-orange-700 hover:bg-yellow-100/40" onClick={() => onNavigate('drafts')}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-orange-700 hover:bg-yellow-100/40"
+                    onClick={() => onNavigate("drafts")}
+                  >
                     <Plus className="w-3 h-3 mr-1" />
                     View All Drafts
                   </Button>
@@ -554,7 +569,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <div className="text-xs text-stone-600">Avg Confidence</div>
                   </div>
                   <div className="text-center p-3 bg-white rounded-lg border border-emerald-200/30 shadow-sm">
-                    <div className="text-xl font-bold text-emerald-700">${todaysStats.revenueGenerated.toLocaleString()}</div>
+                    <div className="text-xl font-bold text-emerald-700">
+                      ${todaysStats.revenueGenerated.toLocaleString()}
+                    </div>
                     <div className="text-xs text-stone-600">Revenue Today</div>
                   </div>
                 </div>
@@ -585,17 +602,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <span className="text-xs text-stone-600">{measure.name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-stone-700">{measure.current}%</span>
-                        <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border-purple-100/50">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-purple-50 text-purple-700 border-purple-100/50"
+                        >
                           {measure.trend}
                         </Badge>
                       </div>
                     </motion.div>
                   ))}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="w-full text-xs mt-3 text-purple-700 hover:bg-purple-50/50"
-                    onClick={() => onNavigate('analytics')}
+                    onClick={() => onNavigate("analytics")}
                   >
                     <BarChart3 className="w-3 h-3 mr-1" />
                     View Analytics

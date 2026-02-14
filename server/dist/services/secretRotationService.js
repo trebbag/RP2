@@ -4,6 +4,7 @@ import { writeSystemAuditLog } from "../middleware/audit.js";
 export async function recordSecretRotationEvent(input) {
     const rotatedAtIso = input.rotatedAt ?? new Date().toISOString();
     await writeSystemAuditLog({
+        orgId: input.orgId,
         action: "secret_rotation_recorded",
         entity: "security",
         entityId: input.ticketId,
@@ -21,9 +22,9 @@ export async function recordSecretRotationEvent(input) {
         rotatedAt: rotatedAtIso
     };
 }
-export async function getSecretRotationStatus() {
+export async function getSecretRotationStatus(orgId) {
     const rows = await prisma.auditLog.findMany({
-        where: { action: "secret_rotation_recorded" },
+        where: { orgId, action: "secret_rotation_recorded" },
         orderBy: { createdAt: "desc" },
         take: 100
     });

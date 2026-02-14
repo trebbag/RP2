@@ -92,19 +92,20 @@ export function DualRichTextEditor({
 
   const getCurrentRightContent = () => (rightVersion === "enhanced" ? enhancedText : summaryText)
 
-  const styles = rightVersion === "enhanced"
-    ? {
-        background: "linear-gradient(135deg, #fafcff 0%, #f8faff 25%, #f4f7ff 50%, #f3f5ff 75%, #fafcff 100%)",
-        headerClass: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
-        headerTextClass: "text-blue-800",
-        footerClass: "border-blue-200 bg-blue-50/50"
-      }
-    : {
-        background: "linear-gradient(135deg, #fafaff 0%, #f8f8fd 25%, #f6f6fb 50%, #f4f4f9 75%, #fafaff 100%)",
-        headerClass: "bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200",
-        headerTextClass: "text-violet-800",
-        footerClass: "border-violet-200 bg-violet-50/50"
-      }
+  const styles =
+    rightVersion === "enhanced"
+      ? {
+          background: "linear-gradient(135deg, #fafcff 0%, #f8faff 25%, #f4f7ff 50%, #f3f5ff 75%, #fafcff 100%)",
+          headerClass: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200",
+          headerTextClass: "text-blue-800",
+          footerClass: "border-blue-200 bg-blue-50/50"
+        }
+      : {
+          background: "linear-gradient(135deg, #fafaff 0%, #f8f8fd 25%, #f6f6fb 50%, #f4f4f9 75%, #fafaff 100%)",
+          headerClass: "bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200",
+          headerTextClass: "text-violet-800",
+          footerClass: "border-violet-200 bg-violet-50/50"
+        }
 
   const handleAcceptVersion = () => {
     setAcceptedVersions((prev) => ({
@@ -187,7 +188,7 @@ export function DualRichTextEditor({
                 style={{
                   minHeight: "100%",
                   fontFamily:
-                    "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"Helvetica Neue\", Arial, sans-serif"
+                    '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif'
                 }}
               />
             </div>
@@ -237,7 +238,10 @@ export function DualRichTextEditor({
                       animate={{ x: ["-100%", "100%"] }}
                       transition={{ duration: 2, repeat: Infinity, repeatType: "loop", ease: "linear" }}
                     />
-                    <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 0.4, type: "spring", stiffness: 200 }}>
+                    <motion.div
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
+                    >
                       {rightVersion === "enhanced" ? (
                         <Sparkles size={18} className="text-white drop-shadow-sm" />
                       ) : (
@@ -288,7 +292,10 @@ export function DualRichTextEditor({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <motion.div animate={{ rotate: rightVersion === "enhanced" ? 0 : 180 }} transition={{ duration: 0.2 }}>
+                    <motion.div
+                      animate={{ rotate: rightVersion === "enhanced" ? 0 : 180 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       <ToggleRight size={14} />
                     </motion.div>
                     Switch to {rightVersion === "enhanced" ? "Summary" : "Enhanced"}
@@ -311,13 +318,15 @@ export function DualRichTextEditor({
                   value={getCurrentRightContent()}
                   onChange={handleRightChange}
                   className="w-full h-full resize-none border-none outline-none bg-white/80 rounded-lg p-4 text-sm leading-relaxed shadow-sm text-slate-900"
-                  placeholder={rightVersion === "enhanced"
-                    ? "AI-enhanced medical documentation will appear here..."
-                    : "Patient-friendly summary will appear here..."}
+                  placeholder={
+                    rightVersion === "enhanced"
+                      ? "AI-enhanced medical documentation will appear here..."
+                      : "Patient-friendly summary will appear here..."
+                  }
                   style={{
                     minHeight: "100%",
                     fontFamily:
-                      "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"Helvetica Neue\", Arial, sans-serif"
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif'
                   }}
                 />
               </motion.div>
@@ -363,20 +372,28 @@ export function DualRichTextEditor({
 
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${rightVersion === "enhanced" ? "bg-blue-500" : "bg-violet-500"}`} />
-                    <span className="opacity-70">Currently viewing: {rightVersion === "enhanced" ? "AI Enhanced" : "Patient Summary"} version</span>
+                    <div
+                      className={`w-2 h-2 rounded-full ${rightVersion === "enhanced" ? "bg-blue-500" : "bg-violet-500"}`}
+                    />
+                    <span className="opacity-70">
+                      Currently viewing: {rightVersion === "enhanced" ? "AI Enhanced" : "Patient Summary"} version
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                      acceptedVersions.enhanced ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                    }`}>
+                    <div
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                        acceptedVersions.enhanced ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
                       <Check size={10} />
                       Enhanced
                     </div>
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                      acceptedVersions.summary ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                    }`}>
+                    <div
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                        acceptedVersions.summary ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
                       <Check size={10} />
                       Summary
                     </div>
@@ -422,9 +439,7 @@ export function DualRichTextEditor({
                 <p className="text-sm text-slate-600 mt-1">Comprehensive patient data and visit documentation</p>
               </div>
             </DialogTitle>
-            <DialogDescription className="sr-only">
-              Patient information and visit details panel.
-            </DialogDescription>
+            <DialogDescription className="sr-only">Patient information and visit details panel.</DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="patient-summary" className="flex-1 flex flex-col min-h-0">
@@ -525,9 +540,7 @@ export function DualRichTextEditor({
               <Brain size={18} className="text-blue-600" />
               AI Planning Assistant
             </DialogTitle>
-            <DialogDescription>
-              Review and customize the recommended next steps for this patient.
-            </DialogDescription>
+            <DialogDescription>Review and customize the recommended next steps for this patient.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-3">
@@ -714,7 +727,10 @@ export function DualRichTextEditor({
                 <Button variant="outline" size="sm" className="rounded-full">
                   Export Report
                 </Button>
-                <Button size="sm" className="rounded-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700">
+                <Button
+                  size="sm"
+                  className="rounded-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+                >
                   Apply Recommendations
                 </Button>
               </div>

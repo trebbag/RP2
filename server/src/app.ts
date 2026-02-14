@@ -6,6 +6,8 @@ import { env } from "./config/env.js"
 import { authenticate } from "./middleware/auth.js"
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js"
 import { requestContext } from "./middleware/requestContext.js"
+import { requireOrgContext } from "./middleware/tenant.js"
+import { requireRlsTenantContext } from "./middleware/rls.js"
 import { authRoutes } from "./routes/authRoutes.js"
 import { appointmentRoutes } from "./routes/appointmentRoutes.js"
 import { encounterRoutes } from "./routes/encounterRoutes.js"
@@ -53,14 +55,14 @@ export function createApp() {
   app.use("/api/auth/mfa/enroll/start", authLoginRateLimiter)
   app.use("/api/auth/refresh", authRefreshRateLimiter)
   app.use("/api/auth", authRoutes)
-  app.use("/api/appointments", authenticate, appointmentRoutes)
-  app.use("/api/encounters", authenticate, encounterRoutes)
-  app.use("/api/wizard", authenticate, wizardRoutes)
-  app.use("/api/drafts", authenticate, draftRoutes)
-  app.use("/api/exports", authenticate, exportRoutes)
-  app.use("/api/admin", authenticate, adminRoutes)
-  app.use("/api/settings", authenticate, settingsRoutes)
-  app.use("/api/activity", authenticate, activityRoutes)
+  app.use("/api/appointments", authenticate, requireOrgContext, requireRlsTenantContext, appointmentRoutes)
+  app.use("/api/encounters", authenticate, requireOrgContext, requireRlsTenantContext, encounterRoutes)
+  app.use("/api/wizard", authenticate, requireOrgContext, requireRlsTenantContext, wizardRoutes)
+  app.use("/api/drafts", authenticate, requireOrgContext, requireRlsTenantContext, draftRoutes)
+  app.use("/api/exports", authenticate, requireOrgContext, requireRlsTenantContext, exportRoutes)
+  app.use("/api/admin", authenticate, requireOrgContext, requireRlsTenantContext, adminRoutes)
+  app.use("/api/settings", authenticate, requireOrgContext, requireRlsTenantContext, settingsRoutes)
+  app.use("/api/activity", authenticate, requireOrgContext, requireRlsTenantContext, activityRoutes)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

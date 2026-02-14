@@ -2,14 +2,19 @@ import assert from "node:assert/strict"
 import { createHmac } from "node:crypto"
 import test from "node:test"
 import supertest from "supertest"
+import { clearTablesInOrder, createAdminPrisma, resolveIntegrationAdminDbUrl } from "./helpers/adminDb.js"
 
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
 const shouldRunIntegration = process.env.RP2_RUN_INTEGRATION === "1"
 const integrationDbUrl = process.env.RP2_INTEGRATION_DB_URL || process.env.DATABASE_URL
+const integrationAdminDbUrl = resolveIntegrationAdminDbUrl()
 
 function fromBase32(value: string): Buffer {
-  const normalized = value.toUpperCase().replace(/=+$/g, "").replace(/[^A-Z2-7]/g, "")
+  const normalized = value
+    .toUpperCase()
+    .replace(/=+$/g, "")
+    .replace(/[^A-Z2-7]/g, "")
   let bits = 0
   let buffer = 0
   const bytes: number[] = []
@@ -46,7 +51,7 @@ function generateTotp(secret: string, timeMs = Date.now(), stepSeconds = 30, dig
   return (binary % mod).toString().padStart(digits, "0")
 }
 
-if (!shouldRunIntegration || !integrationDbUrl) {
+if (!shouldRunIntegration || !integrationDbUrl || !integrationAdminDbUrl) {
   test("auth + MFA lifecycle integration (skipped)", { skip: true }, () => {
     assert.ok(true)
   })
@@ -58,36 +63,13 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     process.env.STORAGE_DIR = process.env.STORAGE_DIR || "./storage"
 
     const { createApp } = await import("../src/app.js")
-    const { prisma } = await import("../src/lib/prisma.js")
+    const adminPrisma = createAdminPrisma()
 
     const app = createApp()
     const request = supertest(app)
 
-    await prisma.$connect()
-
-    const clearTablesInOrder = async () => {
-      await prisma.auditLog.deleteMany({})
-      await prisma.exportArtifact.deleteMany({})
-      await prisma.wizardStepState.deleteMany({})
-      await prisma.wizardRun.deleteMany({})
-      await prisma.complianceIssue.deleteMany({})
-      await prisma.codeSelection.deleteMany({})
-      await prisma.codeSuggestion.deleteMany({})
-      await prisma.suggestionGeneration.deleteMany({})
-      await prisma.transcriptSegment.deleteMany({})
-      await prisma.noteVersion.deleteMany({})
-      await prisma.dispatchJob.deleteMany({})
-      await prisma.note.deleteMany({})
-      await prisma.encounter.deleteMany({})
-      await prisma.chartAsset.deleteMany({})
-      await prisma.appointment.deleteMany({})
-      await prisma.patient.deleteMany({})
-      await prisma.authSession.deleteMany({})
-      await prisma.userSettings.deleteMany({})
-      await prisma.user.deleteMany({})
-    }
-
-    await clearTablesInOrder()
+    await adminPrisma.$connect()
+    await clearTablesInOrder(adminPrisma)
 
     const bootstrapBefore = await request.get("/api/auth/bootstrap-status")
     assert.equal(bootstrapBefore.status, 200)
@@ -171,12 +153,9 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(regenerateBackupCodes.body.backupCodes.length, 8)
 
     const backupCode = regenerateBackupCodes.body.backupCodes[0] as string
-    const disableMfa = await request
-      .post("/api/auth/mfa/disable")
-      .set(mfaAuth)
-      .send({
-        backupCode
-      })
+    const disableMfa = await request.post("/api/auth/mfa/disable").set(mfaAuth).send({
+      backupCode
+    })
     assert.equal(disableMfa.status, 200)
     assert.equal(disableMfa.body.enabled, false)
 
@@ -200,10 +179,10 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     })
     assert.equal(registerClinician.status, 201)
 
-    const clinician = await prisma.user.findUnique({ where: { email: clinicianEmail } })
+    const clinician = await adminPrisma.user.findUnique({ where: { email: clinicianEmail } })
     assert.ok(clinician)
 
-    await prisma.user.update({
+    await adminPrisma.user.update({
       where: { id: clinician!.id },
       data: {
         mfaEnabled: true,
@@ -243,7 +222,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
       })
     assert.equal(clinicianCannotResetAdmin.status, 403)
 
-    await clearTablesInOrder()
-    await prisma.$disconnect()
+    await clearTablesInOrder(adminPrisma)
+    await adminPrisma.$disconnect()
   })
 }

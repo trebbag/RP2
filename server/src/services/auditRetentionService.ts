@@ -2,6 +2,7 @@ import { env } from "../config/env.js"
 import { prisma } from "../lib/prisma.js"
 
 interface AuditRetentionInput {
+  orgId: string
   now?: Date
   dryRun?: boolean
 }
@@ -18,7 +19,7 @@ function getCutoff(now: Date, retentionDays: number): Date {
   return new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000)
 }
 
-export async function runAuditRetentionPolicy(input: AuditRetentionInput = {}): Promise<AuditRetentionReport> {
+export async function runAuditRetentionPolicy(input: AuditRetentionInput): Promise<AuditRetentionReport> {
   const now = input.now ?? new Date()
   const retentionDays = env.AUDIT_RETENTION_DAYS
   const cutoff = getCutoff(now, retentionDays)
@@ -26,6 +27,7 @@ export async function runAuditRetentionPolicy(input: AuditRetentionInput = {}): 
 
   const eligibleCount = await prisma.auditLog.count({
     where: {
+      orgId: input.orgId,
       createdAt: {
         lt: cutoff
       }
@@ -44,6 +46,7 @@ export async function runAuditRetentionPolicy(input: AuditRetentionInput = {}): 
 
   const deleted = await prisma.auditLog.deleteMany({
     where: {
+      orgId: input.orgId,
       createdAt: {
         lt: cutoff
       }

@@ -32,12 +32,24 @@ import {
 } from "./lib/api"
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'app' | 'analytics' | 'settings' | 'activity' | 'drafts' | 'schedule' | 'builder' | 'style-guide' | 'figma-library' | 'finalization-demo'>('home')
+  const [currentView, setCurrentView] = useState<
+    | "home"
+    | "app"
+    | "analytics"
+    | "settings"
+    | "activity"
+    | "drafts"
+    | "schedule"
+    | "builder"
+    | "style-guide"
+    | "figma-library"
+    | "finalization-demo"
+  >("home")
   const [isSuggestionPanelOpen, setIsSuggestionPanelOpen] = useState(true)
   const [authUser, setAuthUser] = useState<AuthUserRecord | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
-  const userRole: 'admin' | 'user' = authUser?.role === "ADMIN" ? "admin" : "user"
+  const userRole: "admin" | "user" = authUser?.role === "ADMIN" ? "admin" : "user"
 
   const currentUser = {
     id: authUser?.id ?? "user-001",
@@ -139,12 +151,12 @@ export default function App() {
 
   const handleAddCode = (code: any) => {
     // Add to the addedCodes array for filtering suggestions
-    setAddedCodes(prev => [...prev, code.code])
-    
+    setAddedCodes((prev) => [...prev, code.code])
+
     // Use the category from the code if it exists, otherwise determine based on type
     let category = code.category || "codes"
     let updatedCodes = { ...selectedCodes }
-    
+
     if (code.category) {
       // Code already has a category (from differentials)
       updatedCodes[code.category] = selectedCodes[code.category] + 1
@@ -154,17 +166,17 @@ export default function App() {
       updatedCodes.codes = selectedCodes.codes + 1
     } else if (code.type === "ICD-10") {
       // ICD-10 codes go to "diagnoses" category
-      category = "diagnoses" 
+      category = "diagnoses"
       updatedCodes.diagnoses = selectedCodes.diagnoses + 1
     } else if (code.type === "PREVENTION") {
       // Prevention items go to "prevention" category
       category = "prevention"
       updatedCodes.prevention = selectedCodes.prevention + 1
     }
-    
+
     // Update the selected codes count
     setSelectedCodes(updatedCodes)
-    
+
     // Add to the selectedCodesList for displaying tiles
     const newCodeItem = {
       code: code.code,
@@ -176,90 +188,86 @@ export default function App() {
       reimbursement: code.reimbursement || "N/A",
       rvu: code.rvu
     }
-    
-    setSelectedCodesList(prev => [...prev, newCodeItem])
+
+    setSelectedCodesList((prev) => [...prev, newCodeItem])
   }
 
-  const handleRemoveCode = (code: any, action: 'clear' | 'return', reasoning?: string) => {
+  const handleRemoveCode = (code: any, action: "clear" | "return", reasoning?: string) => {
     // Remove from selectedCodesList
-    setSelectedCodesList(prev => prev.filter(item => item.code !== code.code))
-    
+    setSelectedCodesList((prev) => prev.filter((item) => item.code !== code.code))
+
     // Update counts when removing codes
     const updatedCodes = { ...selectedCodes }
     if (code.category && updatedCodes[code.category] > 0) {
       updatedCodes[code.category] = updatedCodes[code.category] - 1
     }
     setSelectedCodes(updatedCodes)
-    
-    if (action === 'return') {
+
+    if (action === "return") {
       // Remove from addedCodes so it shows up in suggestions again
-      setAddedCodes(prev => prev.filter(addedCode => addedCode !== code.code))
+      setAddedCodes((prev) => prev.filter((addedCode) => addedCode !== code.code))
     }
-    
+
     // Log the reasoning for AI learning (in a real app, this would be sent to a service)
     if (reasoning) {
       console.log(`Code ${code.code} removed with reasoning: ${reasoning}`)
     }
   }
 
-  const handleChangeCategoryCode = (code: any, newCategory: 'diagnoses' | 'differentials') => {
+  const handleChangeCategoryCode = (code: any, newCategory: "diagnoses" | "differentials") => {
     // Update the code's category in selectedCodesList
-    setSelectedCodesList(prev => 
-      prev.map(item => 
-        item.code === code.code 
-          ? { ...item, category: newCategory }
-          : item
-      )
+    setSelectedCodesList((prev) =>
+      prev.map((item) => (item.code === code.code ? { ...item, category: newCategory } : item))
     )
-    
+
     // Update counts
     const updatedCodes = { ...selectedCodes }
-    
+
     // Decrease count from old category
     if (code.category && updatedCodes[code.category] > 0) {
       updatedCodes[code.category] = updatedCodes[code.category] - 1
     }
-    
+
     // Increase count for new category
     updatedCodes[newCategory] = updatedCodes[newCategory] + 1
-    
+
     setSelectedCodes(updatedCodes)
   }
 
   const handleNavigate = (view: string) => {
-    switch(view) {
-      case 'home':
-        setCurrentView('home')
+    switch (view) {
+      case "home":
+        setCurrentView("home")
         break
-      case 'app':
-        setCurrentView('app')
+      case "app":
+        setCurrentView("app")
         break
-      case 'analytics':
-        setCurrentView('analytics')
+      case "analytics":
+        setCurrentView("analytics")
         break
-      case 'settings':
-        setCurrentView('settings')
+      case "settings":
+        setCurrentView("settings")
         break
-      case 'activity':
-        setCurrentView('activity')
+      case "activity":
+        setCurrentView("activity")
         break
-      case 'drafts':
-        setCurrentView('drafts')
+      case "drafts":
+        setCurrentView("drafts")
         break
-      case 'schedule':
-        setCurrentView('schedule')
+      case "schedule":
+        setCurrentView("schedule")
         break
-      case 'builder':
-        setCurrentView('builder')
+      case "builder":
+        setCurrentView("builder")
         break
-      case 'style-guide':
-        setCurrentView('style-guide')
+      case "style-guide":
+        setCurrentView("style-guide")
         break
-      case 'figma-library':
-        setCurrentView('figma-library')
+      case "figma-library":
+        setCurrentView("figma-library")
         break
-      case 'finalization-demo':
-        setCurrentView('finalization-demo')
+      case "finalization-demo":
+        setCurrentView("finalization-demo")
         break
       default:
         console.log(`Navigate to ${view}`)
@@ -325,7 +333,7 @@ export default function App() {
     setActiveDraftContent("")
     setActiveEncounterIdForSuggestions(encounterId)
     setActiveNoteForSuggestions("")
-    setCurrentView('app')
+    setCurrentView("app")
   }
 
   const handleUploadChart = async (patientId: string) => {
@@ -372,7 +380,11 @@ export default function App() {
   }
 
   if (!authReady) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Checking session...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Checking session...
+      </div>
+    )
   }
 
   if (!authUser) {
@@ -413,19 +425,19 @@ export default function App() {
     ) : null
 
   // Home Dashboard View
-  if (currentView === 'home') {
+  if (currentView === "home") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="home" 
+            <NavigationSidebar
+              currentView="home"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -433,15 +445,15 @@ export default function App() {
                   <h1 className="text-lg font-medium">RevenuePilot Dashboard</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('style-guide')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("style-guide")}>
                     View Style Guide
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('figma-library')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("figma-library")}>
                     Figma Library
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
                 <Dashboard onNavigate={handleNavigate} />
@@ -454,38 +466,38 @@ export default function App() {
   }
 
   // Analytics View
-  if (currentView === 'analytics') {
+  if (currentView === "analytics") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="analytics" 
+            <NavigationSidebar
+              currentView="analytics"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger />
                   <h1 className="text-lg font-medium">Analytics Dashboard</h1>
                   <Badge variant="outline" className="ml-2">
-                    {userRole === 'admin' ? 'Admin Access' : 'User Access'}
+                    {userRole === "admin" ? "Admin Access" : "User Access"}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('app')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("app")}>
                     Documentation
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
                 <Analytics userRole={userRole} />
@@ -498,47 +510,44 @@ export default function App() {
   }
 
   // Activity Log View
-  if (currentView === 'activity') {
+  if (currentView === "activity") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="activity" 
+            <NavigationSidebar
+              currentView="activity"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger />
                   <h1 className="text-lg font-medium">Activity Log</h1>
                   <Badge variant="outline" className="ml-2">
-                    {userRole === 'admin' ? 'Administrator' : 'User'} Access
+                    {userRole === "admin" ? "Administrator" : "User"} Access
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('analytics')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("analytics")}>
                     Analytics
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('settings')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("settings")}>
                     Settings
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
-                <ActivityLog 
-                  currentUser={currentUser}
-                  userRole={userRole}
-                />
+                <ActivityLog currentUser={currentUser} userRole={userRole} />
               </div>
             </main>
           </div>
@@ -548,38 +557,38 @@ export default function App() {
   }
 
   // Settings View
-  if (currentView === 'settings') {
+  if (currentView === "settings") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="settings" 
+            <NavigationSidebar
+              currentView="settings"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger />
                   <h1 className="text-lg font-medium">Settings & Configuration</h1>
                   <Badge variant="outline" className="ml-2">
-                    {userRole === 'admin' ? 'Administrator' : 'User'} Access
+                    {userRole === "admin" ? "Administrator" : "User"} Access
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('app')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("app")}>
                     Documentation
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
                 <Settings userRole={userRole} />
@@ -592,19 +601,19 @@ export default function App() {
   }
 
   // Drafts View
-  if (currentView === 'drafts') {
+  if (currentView === "drafts") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="drafts" 
+            <NavigationSidebar
+              currentView="drafts"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -615,19 +624,19 @@ export default function App() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('app')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("app")}>
                     New Note
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
-                <Drafts 
-                  onEditDraft={handleEditDraft} 
+                <Drafts
+                  onEditDraft={handleEditDraft}
                   currentUser={currentUser}
                   drafts={backendDrafts}
                   onDownloadArtifact={handleDownloadArtifact}
@@ -641,19 +650,19 @@ export default function App() {
   }
 
   // Schedule View
-  if (currentView === 'schedule') {
+  if (currentView === "schedule") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="schedule" 
+            <NavigationSidebar
+              currentView="schedule"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -664,24 +673,24 @@ export default function App() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('app')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("app")}>
                     Documentation
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('drafts')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("drafts")}>
                     Drafts
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('activity')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("activity")}>
                     Activity Log
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
-                <Schedule 
+                <Schedule
                   currentUser={currentUser}
                   onStartVisit={handleStartVisit}
                   onUploadChart={handleUploadChart}
@@ -696,19 +705,19 @@ export default function App() {
   }
 
   // Builder View
-  if (currentView === 'builder') {
+  if (currentView === "builder") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="builder" 
+            <NavigationSidebar
+              currentView="builder"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -719,26 +728,28 @@ export default function App() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('schedule')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("schedule")}>
                     Schedule
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('app')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("app")}>
                     Documentation
                   </Button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto">
                 {backendStatusBanner}
-                <Builder 
+                <Builder
                   currentUser={currentUser}
                   appointments={sharedAppointments}
                   onAppointmentsChange={(appointments) => {
                     if (pilotMode) {
-                      setAppMessage("Schedule edits in pilot mode are managed by backend APIs and cannot be changed locally.")
+                      setAppMessage(
+                        "Schedule edits in pilot mode are managed by backend APIs and cannot be changed locally."
+                      )
                       return
                     }
                     setSharedAppointments(appointments as any[])
@@ -753,19 +764,19 @@ export default function App() {
   }
 
   // Style Guide View
-  if (currentView === 'style-guide') {
+  if (currentView === "style-guide") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="style-guide" 
+            <NavigationSidebar
+              currentView="style-guide"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -773,10 +784,10 @@ export default function App() {
                   <h1 className="text-lg font-medium">RevenuePilot Design System</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Back to Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('figma-library')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("figma-library")}>
                     Figma Library
                   </Button>
                 </div>
@@ -793,19 +804,19 @@ export default function App() {
   }
 
   // Figma Library View
-  if (currentView === 'figma-library') {
+  if (currentView === "figma-library") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="figma-library" 
+            <NavigationSidebar
+              currentView="figma-library"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -813,10 +824,10 @@ export default function App() {
                   <h1 className="text-lg font-medium">Figma Component Library</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Back to Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('style-guide')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("style-guide")}>
                     Style Guide
                   </Button>
                 </div>
@@ -833,19 +844,19 @@ export default function App() {
   }
 
   // Finalization Demo View
-  if (currentView === 'finalization-demo') {
+  if (currentView === "finalization-demo") {
     return (
       <TooltipProvider>
         <SidebarProvider defaultOpen={false}>
           <div className="flex h-screen w-full bg-background">
-            <NavigationSidebar 
-              currentView="finalization-demo" 
+            <NavigationSidebar
+              currentView="finalization-demo"
               onNavigate={handleNavigate}
               currentUser={currentUser}
               userDraftCount={getUserDraftCount()}
               pilotMode={pilotMode}
             />
-            
+
             <main className="flex-1 flex flex-col min-w-0">
               <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -853,10 +864,10 @@ export default function App() {
                   <h1 className="text-lg font-medium">Finalization Wizard Demo</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                     Back to Dashboard
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentView('app')}>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentView("app")}>
                     Documentation
                   </Button>
                 </div>
@@ -877,14 +888,14 @@ export default function App() {
     <TooltipProvider>
       <SidebarProvider defaultOpen={false}>
         <div className="flex h-screen w-full bg-background">
-          <NavigationSidebar 
-            currentView="app" 
+          <NavigationSidebar
+            currentView="app"
             onNavigate={handleNavigate}
             currentUser={currentUser}
             userDraftCount={getUserDraftCount()}
-              pilotMode={pilotMode}
+            pilotMode={pilotMode}
           />
-          
+
           <main className="flex-1 flex flex-col min-w-0">
             <div className="border-b bg-background p-4 flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2">
@@ -900,38 +911,38 @@ export default function App() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('home')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("home")}>
                   Dashboard
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('analytics')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("analytics")}>
                   Analytics
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('settings')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("settings")}>
                   Settings
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('drafts')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("drafts")}>
                   Drafts
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('schedule')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("schedule")}>
                   Schedule
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('activity')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("activity")}>
                   Activity Log
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('style-guide')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("style-guide")}>
                   Style Guide
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentView('figma-library')}>
+                <Button variant="outline" size="sm" onClick={() => setCurrentView("figma-library")}>
                   Figma Library
                 </Button>
               </div>
             </div>
-            
+
             <ResizablePanelGroup direction="horizontal" className="flex-1">
               <ResizablePanel defaultSize={70} minSize={50}>
                 <div className="flex flex-col h-full">
                   {backendStatusBanner}
-                  <NoteEditor 
+                  <NoteEditor
                     prePopulatedPatient={prePopulatedPatient}
                     selectedCodes={selectedCodes}
                     selectedCodesList={selectedCodesList}
@@ -939,7 +950,7 @@ export default function App() {
                     onEncounterIdChange={setActiveEncounterIdForSuggestions}
                     onNoteContentChange={setActiveNoteForSuggestions}
                   />
-                  <SelectedCodesBar 
+                  <SelectedCodesBar
                     selectedCodes={selectedCodes}
                     onUpdateCodes={setSelectedCodes}
                     selectedCodesList={selectedCodesList}
@@ -948,13 +959,13 @@ export default function App() {
                   />
                 </div>
               </ResizablePanel>
-              
+
               {isSuggestionPanelOpen && (
                 <>
                   <ResizableHandle />
                   <ResizablePanel defaultSize={30} minSize={25} maxSize={40}>
-                    <SuggestionPanel 
-                      onClose={() => setIsSuggestionPanelOpen(false)} 
+                    <SuggestionPanel
+                      onClose={() => setIsSuggestionPanelOpen(false)}
                       encounterId={activeEncounterIdForSuggestions || prePopulatedPatient?.encounterId}
                       noteContent={activeNoteForSuggestions}
                       backendConnected={isBackendConnected}
@@ -968,7 +979,7 @@ export default function App() {
                 </>
               )}
             </ResizablePanelGroup>
-            
+
             {!isSuggestionPanelOpen && (
               <button
                 onClick={() => setIsSuggestionPanelOpen(true)}

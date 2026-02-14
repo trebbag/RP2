@@ -79,17 +79,15 @@ function validateHl7Contract(raw: string): string[] {
   return errors
 }
 
-function validateVendorPayload(
-  parsed: Record<string, unknown>,
-  vendor: DispatchContractVendor | undefined
-): string[] {
+function validateVendorPayload(parsed: Record<string, unknown>, vendor: DispatchContractVendor | undefined): string[] {
   const errors: string[] = []
   if (vendor === "ATHENAHEALTH") {
     if (typeof parsed.sourceSystem !== "string") errors.push("ATHENAHEALTH payload requires sourceSystem")
     if (typeof parsed.athenaEncounterId !== "string") errors.push("ATHENAHEALTH payload requires athenaEncounterId")
   } else if (vendor === "NEXTGEN") {
     if (typeof parsed.msgType !== "string") errors.push("NEXTGEN payload requires msgType")
-    if (typeof parsed.nextgen !== "object" || parsed.nextgen === null) errors.push("NEXTGEN payload requires nextgen object")
+    if (typeof parsed.nextgen !== "object" || parsed.nextgen === null)
+      errors.push("NEXTGEN payload requires nextgen object")
   } else if (vendor === "ECLINICALWORKS") {
     if (typeof parsed.apiVersion !== "string") errors.push("ECLINICALWORKS payload requires apiVersion")
     if (typeof parsed.action !== "string") errors.push("ECLINICALWORKS payload requires action")

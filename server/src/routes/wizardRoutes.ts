@@ -3,6 +3,7 @@ import { Router } from "express"
 import { z } from "zod"
 import { ArtifactType, SuggestionCategory, WizardStep, WizardStepStatus } from "@prisma/client"
 import { prisma } from "../lib/prisma.js"
+import { transactional } from "../lib/transactional.js"
 import { ApiError } from "../middleware/errorHandler.js"
 import type { AuthenticatedRequest } from "../types.js"
 import { composeNoteOrchestrated } from "../services/composeService.js"
@@ -15,6 +16,7 @@ import { writeAuditLog } from "../middleware/audit.js"
 import { persistTraceJson } from "../services/traceService.js"
 import { requireRole } from "../middleware/auth.js"
 import { loadPromptProfileForUser } from "../services/promptBuilderService.js"
+import { purgeEncounterTranscriptAfterFinalize } from "../services/transcriptRetentionService.js"
 
 const stepActionSchema = z.object({
   actionType: z.enum(["keep", "remove", "move_to_diagnosis", "move_to_differential", "add_from_suggestion"]),
@@ -28,7 +30,7 @@ const stepActionSchema = z.object({
 
 const composeSchema = z
   .object({
-    noteContent: z.string().optional(),
+    noteContent: z.string().optional()
   })
   .strict()
 
@@ -80,9 +82,10 @@ function mapActionToSelection(actionType: z.infer<typeof stepActionSchema>["acti
   }
 }
 
-async function resolveEncounter(encounterIdentifier: string) {
+async function resolveEncounter(orgId: string, encounterIdentifier: string) {
   return prisma.encounter.findFirst({
     where: {
+      orgId,
       OR: [{ id: encounterIdentifier }, { externalId: encounterIdentifier }]
     },
     include: {
@@ -93,9 +96,10 @@ async function resolveEncounter(encounterIdentifier: string) {
   })
 }
 
-async function getOrCreateWizardRun(encounterId: string) {
+async function getOrCreateWizardRun(orgId: string, encounterId: string) {
   const latest = await prisma.wizardRun.findFirst({
     where: {
+      orgId,
       encounterId,
       status: "IN_PROGRESS"
     },
@@ -106,6 +110,7 @@ async function getOrCreateWizardRun(encounterId: string) {
 
   return prisma.wizardRun.create({
     data: {
+      orgId,
       encounterId,
       status: "IN_PROGRESS"
     }
@@ -117,6 +122,7 @@ async function resolvePromptProfile(req: AuthenticatedRequest) {
 }
 
 async function upsertStepState(params: {
+  orgId: string
   wizardRunId: string
   encounterId: string
   step: WizardStep
@@ -126,7 +132,8 @@ async function upsertStepState(params: {
 }) {
   return prisma.wizardStepState.upsert({
     where: {
-      wizardRunId_step: {
+      orgId_wizardRunId_step: {
+        orgId: params.orgId,
         wizardRunId: params.wizardRunId,
         step: params.step
       }
@@ -137,6 +144,7 @@ async function upsertStepState(params: {
       lastActorId: params.actorId
     },
     create: {
+      orgId: params.orgId,
       wizardRunId: params.wizardRunId,
       encounterId: params.encounterId,
       step: params.step,
@@ -147,9 +155,9 @@ async function upsertStepState(params: {
   })
 }
 
-async function getSelectedCodes(encounterId: string): Promise<string[]> {
+async function getSelectedCodes(orgId: string, encounterId: string): Promise<string[]> {
   const selections = await prisma.codeSelection.findMany({
-    where: { encounterId },
+    where: { orgId, encounterId },
     orderBy: { createdAt: "asc" }
   })
 
@@ -165,9 +173,9 @@ async function getSelectedCodes(encounterId: string): Promise<string[]> {
   return Array.from(activeCodes.keys())
 }
 
-async function getLatestDecisions(encounterId: string) {
+async function getLatestDecisions(orgId: string, encounterId: string) {
   const selections = await prisma.codeSelection.findMany({
-    where: { encounterId },
+    where: { orgId, encounterId },
     orderBy: { createdAt: "desc" }
   })
 
@@ -197,9 +205,9 @@ async function getLatestDecisions(encounterId: string) {
   return Array.from(decisionByCode.values())
 }
 
-async function nextVersion(noteId: string): Promise<number> {
+async function nextVersion(orgId: string, noteId: string): Promise<number> {
   const latest = await prisma.noteVersion.findFirst({
-    where: { noteId },
+    where: { orgId, noteId },
     orderBy: { versionNumber: "desc" }
   })
 
@@ -210,13 +218,14 @@ export const wizardRoutes = Router()
 
 wizardRoutes.get("/:encounterId/state", async (req, res, next) => {
   try {
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const authReq = req as unknown as AuthenticatedRequest
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter || !encounter.note) {
       throw new ApiError(404, "Encounter or note not found")
     }
 
     const latestRun = await prisma.wizardRun.findFirst({
-      where: { encounterId: encounter.id },
+      where: { orgId: authReq.user.orgId, encounterId: encounter.id },
       orderBy: { startedAt: "desc" },
       include: {
         stepStates: {
@@ -225,10 +234,11 @@ wizardRoutes.get("/:encounterId/state", async (req, res, next) => {
       }
     })
 
-    const decisions = await getLatestDecisions(encounter.id)
+    const decisions = await getLatestDecisions(authReq.user.orgId, encounter.id)
 
     const latestComposeVersion = await prisma.noteVersion.findFirst({
       where: {
+        orgId: authReq.user.orgId,
         noteId: encounter.note.id,
         source: {
           in: ["wizard-compose", "wizard-rebeautify", "wizard-finalize"]
@@ -238,14 +248,12 @@ wizardRoutes.get("/:encounterId/state", async (req, res, next) => {
     })
 
     const exportArtifacts = await prisma.exportArtifact.findMany({
-      where: { encounterId: encounter.id },
+      where: { orgId: authReq.user.orgId, encounterId: encounter.id },
       orderBy: { createdAt: "desc" }
     })
 
     const completedSteps = new Set(
-      latestRun?.stepStates
-        .filter((state) => state.status === "COMPLETED")
-        .map((state) => state.step) ?? []
+      latestRun?.stepStates.filter((state) => state.status === "COMPLETED").map((state) => state.step) ?? []
     )
 
     let suggestedStep = 1
@@ -296,18 +304,20 @@ wizardRoutes.post("/:encounterId/step/:step/actions", requireRole(["ADMIN", "CLI
       throw new ApiError(400, "Invalid wizard step")
     }
 
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter) {
       throw new ApiError(404, "Encounter not found")
     }
 
     const payload = stepActionSchema.parse(req.body)
-    const run = await getOrCreateWizardRun(encounter.id)
+    const run = await getOrCreateWizardRun(authReq.user.orgId, encounter.id)
 
     let selectedCodePayload = payload
 
     if (payload.suggestionId) {
-      const suggestion = await prisma.codeSuggestion.findUnique({ where: { id: payload.suggestionId } })
+      const suggestion = await prisma.codeSuggestion.findFirst({
+        where: { id: payload.suggestionId, orgId: authReq.user.orgId, encounterId: encounter.id }
+      })
       if (!suggestion) {
         throw new ApiError(404, "Suggestion not found")
       }
@@ -319,8 +329,8 @@ wizardRoutes.post("/:encounterId/step/:step/actions", requireRole(["ADMIN", "CLI
         category: suggestion.category
       }
 
-      await prisma.codeSuggestion.update({
-        where: { id: suggestion.id },
+      await prisma.codeSuggestion.updateMany({
+        where: { id: suggestion.id, orgId: authReq.user.orgId },
         data: {
           status: payload.actionType === "remove" ? "REMOVED" : "SELECTED"
         }
@@ -330,6 +340,7 @@ wizardRoutes.post("/:encounterId/step/:step/actions", requireRole(["ADMIN", "CLI
     if (selectedCodePayload.code && selectedCodePayload.codeType && selectedCodePayload.category) {
       await prisma.codeSelection.create({
         data: {
+          orgId: authReq.user.orgId,
           encounterId: encounter.id,
           codeSuggestionId: payload.suggestionId,
           code: selectedCodePayload.code,
@@ -343,6 +354,7 @@ wizardRoutes.post("/:encounterId/step/:step/actions", requireRole(["ADMIN", "CLI
     }
 
     const stepState = await upsertStepState({
+      orgId: authReq.user.orgId,
       wizardRunId: run.id,
       encounterId: encounter.id,
       step: mappedStep,
@@ -375,16 +387,17 @@ wizardRoutes.post("/:encounterId/step/:step/actions", requireRole(["ADMIN", "CLI
 wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter || !encounter.note) {
       throw new ApiError(404, "Encounter or note not found")
     }
 
     const payload = composeSchema.parse(req.body)
-    const run = await getOrCreateWizardRun(encounter.id)
+    const run = await getOrCreateWizardRun(authReq.user.orgId, encounter.id)
     const promptProfile = await resolvePromptProfile(authReq)
 
     await upsertStepState({
+      orgId: authReq.user.orgId,
       wizardRunId: run.id,
       encounterId: encounter.id,
       step: WizardStep.STEP3_COMPOSE,
@@ -395,9 +408,12 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
       actorId: authReq.user.id
     })
 
-    const composedResult = await composeNoteOrchestrated({
-      noteContent: payload.noteContent ?? encounter.note.content
-    }, promptProfile)
+    const composedResult = await composeNoteOrchestrated(
+      {
+        noteContent: payload.noteContent ?? encounter.note.content
+      },
+      promptProfile
+    )
 
     const traceArtifact = await persistTraceJson({
       runId: run.id,
@@ -416,6 +432,7 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
 
     const traceRecord = await prisma.exportArtifact.create({
       data: {
+        orgId: authReq.user.orgId,
         encounterId: encounter.id,
         noteId: encounter.note.id,
         type: ArtifactType.TRACE_JSON,
@@ -427,20 +444,24 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
       }
     })
 
-    const newVersionNumber = await nextVersion(encounter.note.id)
+    const newVersionNumber = await nextVersion(authReq.user.orgId, encounter.note.id)
 
-    await prisma.$transaction(async (tx) => {
-      await tx.note.update({
-        where: { id: encounter.note!.id },
+    await transactional(async (tx) => {
+      const updatedNote = await tx.note.updateMany({
+        where: { id: encounter.note!.id, orgId: authReq.user.orgId },
         data: {
           content: composedResult.output.enhancedNote,
           patientSummary: composedResult.output.patientSummary,
           updatedById: authReq.user.id
         }
       })
+      if (updatedNote.count !== 1) {
+        throw new ApiError(404, "Note not found")
+      }
 
       await tx.noteVersion.create({
         data: {
+          orgId: authReq.user.orgId,
           noteId: encounter.note!.id,
           versionNumber: newVersionNumber,
           source: "wizard-compose",
@@ -452,6 +473,7 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
       })
 
       await upsertStepState({
+        orgId: authReq.user.orgId,
         wizardRunId: run.id,
         encounterId: encounter.id,
         step: WizardStep.STEP3_COMPOSE,
@@ -469,6 +491,7 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
       })
 
       await upsertStepState({
+        orgId: authReq.user.orgId,
         wizardRunId: run.id,
         encounterId: encounter.id,
         step: WizardStep.STEP4_COMPARE_EDIT,
@@ -520,16 +543,19 @@ wizardRoutes.post("/:encounterId/compose", requireRole(["ADMIN", "CLINICIAN"]), 
 wizardRoutes.post("/:encounterId/rebeautify", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter || !encounter.note) {
       throw new ApiError(404, "Encounter or note not found")
     }
 
     const payload = composeSchema.parse(req.body)
     const promptProfile = await resolvePromptProfile(authReq)
-    const composedResult = await composeNoteOrchestrated({
-      noteContent: payload.noteContent ?? encounter.note.content
-    }, promptProfile)
+    const composedResult = await composeNoteOrchestrated(
+      {
+        noteContent: payload.noteContent ?? encounter.note.content
+      },
+      promptProfile
+    )
 
     const traceArtifact = await persistTraceJson({
       runId: `rebeautify-${encounter.id}-${Date.now()}`,
@@ -546,6 +572,7 @@ wizardRoutes.post("/:encounterId/rebeautify", requireRole(["ADMIN", "CLINICIAN"]
 
     await prisma.exportArtifact.create({
       data: {
+        orgId: authReq.user.orgId,
         encounterId: encounter.id,
         noteId: encounter.note.id,
         type: ArtifactType.TRACE_JSON,
@@ -557,9 +584,10 @@ wizardRoutes.post("/:encounterId/rebeautify", requireRole(["ADMIN", "CLINICIAN"]
       }
     })
 
-    const versionNumber = await nextVersion(encounter.note.id)
+    const versionNumber = await nextVersion(authReq.user.orgId, encounter.note.id)
     await prisma.noteVersion.create({
       data: {
+        orgId: authReq.user.orgId,
         noteId: encounter.note.id,
         versionNumber,
         source: "wizard-rebeautify",
@@ -570,8 +598,8 @@ wizardRoutes.post("/:encounterId/rebeautify", requireRole(["ADMIN", "CLINICIAN"]
       }
     })
 
-    await prisma.note.update({
-      where: { id: encounter.note.id },
+    await prisma.note.updateMany({
+      where: { id: encounter.note.id, orgId: authReq.user.orgId },
       data: {
         content: composedResult.output.enhancedNote,
         patientSummary: composedResult.output.patientSummary,
@@ -601,13 +629,14 @@ wizardRoutes.post("/:encounterId/rebeautify", requireRole(["ADMIN", "CLINICIAN"]
 
 wizardRoutes.post("/:encounterId/billing-preview", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const authReq = req as unknown as AuthenticatedRequest
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter) {
       throw new ApiError(404, "Encounter not found")
     }
 
     const payload = billingPreviewSchema.parse(req.body)
-    const selectedCodes = await getSelectedCodes(encounter.id)
+    const selectedCodes = await getSelectedCodes(authReq.user.orgId, encounter.id)
     const billing = calculateBillingEstimate({
       selectedCodes,
       payerModel: payload.payerModel,
@@ -627,7 +656,7 @@ wizardRoutes.post("/:encounterId/billing-preview", requireRole(["ADMIN", "CLINIC
 wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]), async (req, res, next) => {
   try {
     const authReq = req as unknown as AuthenticatedRequest
-    const encounter = await resolveEncounter(req.params.encounterId)
+    const encounter = await resolveEncounter(authReq.user.orgId, req.params.encounterId)
     if (!encounter || !encounter.note) {
       throw new ApiError(404, "Encounter or note not found")
     }
@@ -636,6 +665,7 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
 
     const unresolvedCritical = await prisma.complianceIssue.findMany({
       where: {
+        orgId: authReq.user.orgId,
         encounterId: encounter.id,
         status: "ACTIVE",
         severity: "CRITICAL"
@@ -648,12 +678,12 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
       })
     }
 
-    const run = await getOrCreateWizardRun(encounter.id)
+    const run = await getOrCreateWizardRun(authReq.user.orgId, encounter.id)
 
     const finalNote = payload.finalNote ?? encounter.note.content
     const finalPatientSummary = payload.finalPatientSummary ?? encounter.note.patientSummary
 
-    const selectedCodes = await getSelectedCodes(encounter.id)
+    const selectedCodes = await getSelectedCodes(authReq.user.orgId, encounter.id)
     const billing = calculateBillingEstimate({
       selectedCodes,
       payerModel: payload.payerModel,
@@ -665,6 +695,7 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
     })
 
     await upsertStepState({
+      orgId: authReq.user.orgId,
       wizardRunId: run.id,
       encounterId: encounter.id,
       step: WizardStep.STEP5_BILLING_ATTEST,
@@ -692,11 +723,11 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
       content: finalPatientSummary
     })
 
-    const versionNumber = await nextVersion(encounter.note.id)
+    const versionNumber = await nextVersion(authReq.user.orgId, encounter.note.id)
 
-    const { artifacts } = await prisma.$transaction(async (tx) => {
-      await tx.note.update({
-        where: { id: encounter.note!.id },
+    const { artifacts } = await transactional(async (tx) => {
+      const updatedNote = await tx.note.updateMany({
+        where: { id: encounter.note!.id, orgId: authReq.user.orgId },
         data: {
           content: finalNote,
           patientSummary: finalPatientSummary,
@@ -707,9 +738,13 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
           updatedById: authReq.user.id
         }
       })
+      if (updatedNote.count !== 1) {
+        throw new ApiError(404, "Note not found")
+      }
 
       await tx.noteVersion.create({
         data: {
+          orgId: authReq.user.orgId,
           noteId: encounter.note!.id,
           versionNumber,
           source: "wizard-finalize",
@@ -719,16 +754,26 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
         }
       })
 
-      await tx.encounter.update({
-        where: { id: encounter.id },
+      const updatedEncounter = await tx.encounter.updateMany({
+        where: { id: encounter.id, orgId: authReq.user.orgId },
         data: {
           status: "FINALIZED",
           finalizedAt: new Date()
         }
       })
+      if (updatedEncounter.count !== 1) {
+        throw new ApiError(404, "Encounter not found")
+      }
+
+      await purgeEncounterTranscriptAfterFinalize({
+        orgId: authReq.user.orgId,
+        encounterId: encounter.id,
+        client: tx
+      })
 
       const noteArtifact = await tx.exportArtifact.create({
         data: {
+          orgId: authReq.user.orgId,
           encounterId: encounter.id,
           noteId: encounter.note!.id,
           type: ArtifactType.NOTE_PDF,
@@ -742,6 +787,7 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
 
       const summaryArtifact = await tx.exportArtifact.create({
         data: {
+          orgId: authReq.user.orgId,
           encounterId: encounter.id,
           noteId: encounter.note!.id,
           type: ArtifactType.PATIENT_SUMMARY_PDF,
@@ -756,6 +802,7 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
       const createdArtifacts = [noteArtifact, summaryArtifact]
 
       await upsertStepState({
+        orgId: authReq.user.orgId,
         wizardRunId: run.id,
         encounterId: encounter.id,
         step: WizardStep.STEP6_SIGN_DISPATCH,
@@ -767,8 +814,8 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
         actorId: authReq.user.id
       })
 
-      await tx.wizardRun.update({
-        where: { id: run.id },
+      await tx.wizardRun.updateMany({
+        where: { id: run.id, orgId: authReq.user.orgId },
         data: {
           status: "COMPLETED",
           completedAt: new Date()
@@ -779,6 +826,7 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
     })
 
     const dispatchJob = await enqueueDispatchJob({
+      orgId: authReq.user.orgId,
       encounterId: encounter.id,
       noteId: encounter.note.id,
       createdById: authReq.user.id,
@@ -802,9 +850,10 @@ wizardRoutes.post("/:encounterId/finalize", requireRole(["ADMIN", "CLINICIAN"]),
       }
     })
 
-    const dispatchResult = await attemptDispatchJob(dispatchJob.id)
+    const dispatchResult = await attemptDispatchJob(dispatchJob.id, { orgId: authReq.user.orgId })
 
     await upsertStepState({
+      orgId: authReq.user.orgId,
       wizardRunId: run.id,
       encounterId: encounter.id,
       step: WizardStep.STEP6_SIGN_DISPATCH,

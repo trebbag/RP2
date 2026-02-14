@@ -3,14 +3,16 @@ import { Router } from "express"
 import { prisma } from "../lib/prisma.js"
 import { ApiError } from "../middleware/errorHandler.js"
 import { requireRole } from "../middleware/auth.js"
+import type { AuthenticatedRequest } from "../types.js"
 
 export const exportRoutes = Router()
 exportRoutes.use(requireRole(["ADMIN", "MA", "CLINICIAN"]))
 
 exportRoutes.get("/:artifactId", async (req, res, next) => {
   try {
-    const artifact = await prisma.exportArtifact.findUnique({
-      where: { id: req.params.artifactId }
+    const authReq = req as unknown as AuthenticatedRequest
+    const artifact = await prisma.exportArtifact.findFirst({
+      where: { id: req.params.artifactId, orgId: authReq.user.orgId }
     })
 
     if (!artifact) {

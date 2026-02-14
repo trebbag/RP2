@@ -120,11 +120,9 @@ function buildBaseWhere(input) {
             ]
         });
     }
-    if (andClauses.length === 0) {
-        return {};
-    }
     return {
-        AND: andClauses
+        orgId: input.orgId,
+        ...(andClauses.length > 0 ? { AND: andClauses } : {})
     };
 }
 export const activityRoutes = Router();
@@ -141,6 +139,7 @@ activityRoutes.get("/", async (req, res, next) => {
         const includeBackend = query.includeBackend && role === "ADMIN";
         const baseWhere = buildBaseWhere({
             userId: authReq.user.id,
+            orgId: authReq.user.orgId,
             role,
             query
         });

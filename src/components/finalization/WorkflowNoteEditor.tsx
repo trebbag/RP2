@@ -1,16 +1,6 @@
 import React, { useState, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import {
-  Bold,
-  Italic,
-  Underline,
-  List,
-  ListOrdered,
-  Undo,
-  Redo,
-  MessageSquare,
-  User
-} from "lucide-react"
+import { Bold, Italic, Underline, List, ListOrdered, Undo, Redo, MessageSquare, User } from "lucide-react"
 import { Button } from "../ui/button"
 import { Separator } from "../ui/separator"
 
@@ -150,8 +140,7 @@ export function WorkflowNoteEditor({
         exit={{ opacity: 0 }}
         className="absolute inset-0 pointer-events-none whitespace-pre-wrap text-transparent"
         style={{
-          fontFamily:
-            "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"Helvetica Neue\", Arial, sans-serif",
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif',
           fontSize: "14px",
           lineHeight: "1.6",
           color: "transparent",
@@ -401,7 +390,7 @@ export function WorkflowNoteEditor({
                   disabled={disabled}
                   style={{
                     fontFamily:
-                      "-apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, \"Helvetica Neue\", Arial, sans-serif",
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif',
                     fontSize: "14px",
                     lineHeight: "1.6",
                     padding: "0",

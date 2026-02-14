@@ -8,16 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog"
 import { ScrollArea } from "./ui/scroll-area"
-import { 
-  CheckCircle, 
-  Save, 
-  Play, 
-  Square, 
-  Clock, 
-  Mic,
-  MicOff,
-  AlertTriangle
-} from "lucide-react"
+import { CheckCircle, Save, Play, Square, Clock, Mic, MicOff, AlertTriangle } from "lucide-react"
 import { RichTextEditor } from "./RichTextEditor"
 import { WorkflowWizardOverlay } from "./finalization/WorkflowWizardOverlay"
 import {
@@ -36,11 +27,11 @@ import {
 
 interface ComplianceIssue {
   id: string
-  severity: 'critical' | 'warning' | 'info'
-  status?: 'active' | 'dismissed' | 'resolved'
+  severity: "critical" | "warning" | "info"
+  status?: "active" | "dismissed" | "resolved"
   title: string
   description: string
-  category: 'documentation' | 'coding' | 'billing' | 'quality'
+  category: "documentation" | "coding" | "billing" | "quality"
   details: string
   suggestion: string
   learnMoreUrl?: string
@@ -64,7 +55,7 @@ interface NoteEditorProps {
   onNoteContentChange?: (noteContent: string) => void
 }
 
-export function NoteEditor({ 
+export function NoteEditor({
   prePopulatedPatient,
   initialNoteContent = "",
   selectedCodes = { codes: 0, prevention: 0, diagnoses: 0, differentials: 0 },
@@ -106,34 +97,42 @@ export function NoteEditor({
       id: "mdm-1",
       severity: "critical",
       title: "Medical Decision Making complexity not documented",
-      description: "The note lacks specific documentation of medical decision making complexity required for E/M coding.",
+      description:
+        "The note lacks specific documentation of medical decision making complexity required for E/M coding.",
       category: "documentation",
-      details: "For CPT 99214, you must document moderate level medical decision making. Include number of diagnoses/management options, amount of data reviewed, and risk assessment.",
-      suggestion: "Add a Medical Decision Making section with: 1) Problem complexity assessment, 2) Data reviewed, 3) Risk stratification table showing moderate complexity.",
-      learnMoreUrl: "https://www.cms.gov/outreach-and-education/medicare-learning-network-mln/mlnproducts/downloads/eval-mgmt-serv-guide-icn006764.pdf",
+      details:
+        "For CPT 99214, you must document moderate level medical decision making. Include number of diagnoses/management options, amount of data reviewed, and risk assessment.",
+      suggestion:
+        "Add a Medical Decision Making section with: 1) Problem complexity assessment, 2) Data reviewed, 3) Risk stratification table showing moderate complexity.",
+      learnMoreUrl:
+        "https://www.cms.gov/outreach-and-education/medicare-learning-network-mln/mlnproducts/downloads/eval-mgmt-serv-guide-icn006764.pdf",
       dismissed: false,
       status: "active"
     },
     {
-      id: "ros-1", 
+      id: "ros-1",
       severity: "warning",
       title: "Review of Systems incomplete",
       description: "Extended Review of Systems (ROS) documentation is missing or incomplete for this level of service.",
       category: "documentation",
-      details: "E/M level 4 visits require extended ROS covering 2-9 systems or complete ROS covering 10+ systems to support the level of service billed.",
-      suggestion: "Document a systematic review of systems including respiratory, cardiovascular, gastrointestinal, and other relevant systems. Include both positive and negative findings.",
+      details:
+        "E/M level 4 visits require extended ROS covering 2-9 systems or complete ROS covering 10+ systems to support the level of service billed.",
+      suggestion:
+        "Document a systematic review of systems including respiratory, cardiovascular, gastrointestinal, and other relevant systems. Include both positive and negative findings.",
       learnMoreUrl: "https://www.cms.gov/medicare/physician-fee-schedule/physician-fee-schedule",
       dismissed: false,
       status: "active"
     },
     {
       id: "icd-specificity-1",
-      severity: "info", 
+      severity: "info",
       title: "ICD-10 code specificity can be improved",
       description: "Some diagnosis codes could be more specific to improve clinical accuracy and billing precision.",
       category: "coding",
-      details: "Using more specific ICD-10 codes when clinical information supports it can improve care coordination and reduce the need for additional documentation requests.",
-      suggestion: "Review selected diagnosis codes and consider if more specific codes are appropriate based on documented clinical findings.",
+      details:
+        "Using more specific ICD-10 codes when clinical information supports it can improve care coordination and reduce the need for additional documentation requests.",
+      suggestion:
+        "Review selected diagnosis codes and consider if more specific codes are appropriate based on documented clinical findings.",
       dismissed: false,
       status: "active"
     }
@@ -200,18 +199,8 @@ export function NoteEditor({
       setComplianceIssues(
         response.issues.map((issue) => ({
           id: issue.id,
-          severity:
-            issue.severity === "CRITICAL"
-              ? "critical"
-              : issue.severity === "WARNING"
-                ? "warning"
-                : "info",
-          status:
-            issue.status === "DISMISSED"
-              ? "dismissed"
-              : issue.status === "RESOLVED"
-                ? "resolved"
-                : "active",
+          severity: issue.severity === "CRITICAL" ? "critical" : issue.severity === "WARNING" ? "warning" : "info",
+          status: issue.status === "DISMISSED" ? "dismissed" : issue.status === "RESOLVED" ? "resolved" : "active",
           title: issue.title,
           description: issue.description,
           category: mapComplianceCategory(issue.title, issue.description),
@@ -229,9 +218,7 @@ export function NoteEditor({
 
   const handleDismissIssue = async (issueId: string) => {
     setComplianceIssues((prev) =>
-      prev.map((issue) =>
-        issue.id === issueId ? { ...issue, dismissed: true, status: "dismissed" } : issue
-      )
+      prev.map((issue) => (issue.id === issueId ? { ...issue, dismissed: true, status: "dismissed" } : issue))
     )
 
     if (!encounterId) return
@@ -244,9 +231,7 @@ export function NoteEditor({
 
   const handleRestoreIssue = async (issueId: string) => {
     setComplianceIssues((prev) =>
-      prev.map((issue) =>
-        issue.id === issueId ? { ...issue, dismissed: false, status: "active" } : issue
-      )
+      prev.map((issue) => (issue.id === issueId ? { ...issue, dismissed: false, status: "active" } : issue))
     )
 
     if (!encounterId) return
@@ -259,7 +244,7 @@ export function NoteEditor({
 
   // Calculate active issues for button state
   const activeIssues = complianceIssues.filter((issue) => !issue.dismissed && issue.status !== "resolved")
-  const criticalIssues = activeIssues.filter(issue => issue.severity === 'critical')
+  const criticalIssues = activeIssues.filter((issue) => issue.severity === "critical")
   const hasActiveIssues = activeIssues.length > 0
   const hasCriticalIssues = criticalIssues.length > 0
 
@@ -325,8 +310,7 @@ export function NoteEditor({
       mediaStreamRef.current = stream
 
       const candidateMimeTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]
-      const selectedMimeType =
-        candidateMimeTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || ""
+      const selectedMimeType = candidateMimeTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || ""
 
       const recorder = selectedMimeType
         ? new MediaRecorder(stream, { mimeType: selectedMimeType })
@@ -443,7 +427,7 @@ export function NoteEditor({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
   const openCorrectionEditor = (segment: TranscriptSegmentRecord) => {
@@ -583,7 +567,7 @@ export function NoteEditor({
               placeholder="Enter Patient ID"
             />
           </div>
-          
+
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="encounter-id">Encounter ID</Label>
             <Input
@@ -594,19 +578,19 @@ export function NoteEditor({
             />
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-3 items-center">
           {/* Primary Actions */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
+                <Button
                   onClick={handleFinalize}
                   disabled={!hasRecordedTime || hasActiveIssues}
                   className={`shadow-sm ${
-                    hasActiveIssues 
-                      ? 'bg-muted text-muted-foreground cursor-not-allowed' 
-                      : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                    hasActiveIssues
+                      ? "bg-muted text-muted-foreground cursor-not-allowed"
+                      : "bg-primary hover:bg-primary/90 text-primary-foreground"
                   }`}
                 >
                   {hasActiveIssues ? (
@@ -614,25 +598,26 @@ export function NoteEditor({
                   ) : (
                     <CheckCircle className="w-4 h-4 mr-2" />
                   )}
-                  {hasActiveIssues ? 'Issues Must Be Resolved' : 'Save & Finalize Note'}
+                  {hasActiveIssues ? "Issues Must Be Resolved" : "Save & Finalize Note"}
                 </Button>
               </TooltipTrigger>
               {hasActiveIssues && (
                 <TooltipContent>
                   <div className="space-y-1">
                     <div className="font-medium text-sm">
-                      {activeIssues.length} compliance issue{activeIssues.length !== 1 ? 's' : ''} must be resolved
+                      {activeIssues.length} compliance issue{activeIssues.length !== 1 ? "s" : ""} must be resolved
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {hasCriticalIssues && `${criticalIssues.length} critical issue${criticalIssues.length !== 1 ? 's' : ''} requiring attention`}
+                      {hasCriticalIssues &&
+                        `${criticalIssues.length} critical issue${criticalIssues.length !== 1 ? "s" : ""} requiring attention`}
                     </div>
                   </div>
                 </TooltipContent>
               )}
             </Tooltip>
           </TooltipProvider>
-          
-          <Button 
+
+          <Button
             variant="outline"
             onClick={handleSaveDraft}
             disabled={!hasRecordedTime || isSaving}
@@ -653,14 +638,16 @@ export function NoteEditor({
               Compliance Refreshing...
             </Badge>
           )}
-          
+
           {/* Start Visit with Recording Indicator */}
           <div className="flex items-center gap-3">
-            <Button 
+            <Button
               onClick={handleVisitToggle}
               disabled={!canStartVisit && !visitStarted}
               variant={visitStarted ? "destructive" : "default"}
-              className={!visitStarted ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-sm" : ""}
+              className={
+                !visitStarted ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-sm" : ""
+              }
             >
               {!visitStarted ? (
                 <>
@@ -674,7 +661,7 @@ export function NoteEditor({
                 </>
               )}
             </Button>
-            
+
             {/* Show indicators when visit has ever been started */}
             {hasEverStarted && (
               <div className="flex items-center gap-3 text-destructive">
@@ -684,50 +671,48 @@ export function NoteEditor({
                     {formatTime(totalDisplayTime)}
                   </span>
                 </div>
-                
+
                 {/* Audio Wave Animation - show when visit has ever been started */}
                 {hasEverStarted && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div 
+                        <div
                           className="flex items-center gap-0.5 h-6 cursor-pointer"
                           onClick={() => setShowFullTranscript(true)}
                         >
                           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                             <div
                               key={i}
-                              className={`w-0.5 rounded-full ${isRecording ? 'bg-destructive' : 'bg-muted-foreground'}`}
+                              className={`w-0.5 rounded-full ${isRecording ? "bg-destructive" : "bg-muted-foreground"}`}
                               style={{
                                 height: isRecording ? `${8 + (i % 4) * 3}px` : `${6 + (i % 3) * 2}px`,
-                                animation: isRecording ? `audioWave${i} ${1.2 + (i % 3) * 0.3}s ease-in-out infinite` : 'none',
-                                animationDelay: isRecording ? `${i * 0.1}s` : '0s'
+                                animation: isRecording
+                                  ? `audioWave${i} ${1.2 + (i % 3) * 0.3}s ease-in-out infinite`
+                                  : "none",
+                                animationDelay: isRecording ? `${i * 0.1}s` : "0s"
                               }}
                             />
                           ))}
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent 
-                        side="bottom" 
-                        align="center"
-                        className="max-w-sm p-3 bg-popover border-border"
-                      >
+                      <TooltipContent side="bottom" align="center" className="max-w-sm p-3 bg-popover border-border">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${isRecording ? 'bg-destructive animate-pulse' : 'bg-muted-foreground'}`}></div>
-                            {isRecording ? 'Live Transcription Preview' : 'Transcription Preview (Paused)'}
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full ${isRecording ? "bg-destructive animate-pulse" : "bg-muted-foreground"}`}
+                            ></div>
+                            {isRecording ? "Live Transcription Preview" : "Transcription Preview (Paused)"}
                           </div>
                           <div className="bg-muted/50 rounded-md p-2 border-l-2 border-destructive space-y-1">
                             {getRecentTranscription().map((line, index) => (
-                              <div 
-                                key={index} 
+                              <div
+                                key={index}
                                 className={`text-xs leading-relaxed ${
-                                  index === 2 
-                                    ? 'text-foreground font-medium' 
-                                    : 'text-muted-foreground'
+                                  index === 2 ? "text-foreground font-medium" : "text-muted-foreground"
                                 }`}
                                 style={{
-                                  opacity: index === 2 ? 1 : 0.7 - (index * 0.2)
+                                  opacity: index === 2 ? 1 : 0.7 - index * 0.2
                                 }}
                               >
                                 {line}
@@ -752,10 +737,10 @@ export function NoteEditor({
           </div>
         </div>
       </div>
-      
+
       {/* Rich Text Editor */}
       <div className="flex-1">
-        <RichTextEditor 
+        <RichTextEditor
           value={noteContent}
           disabled={isEditorDisabled}
           complianceIssues={complianceIssues}
@@ -793,11 +778,11 @@ export function NoteEditor({
                     </>
                   )}
                 </div>
-                <div className={`flex items-center gap-1 text-sm ${isRecording ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <div
+                  className={`flex items-center gap-1 text-sm ${isRecording ? "text-destructive" : "text-muted-foreground"}`}
+                >
                   <Clock className="w-4 h-4" />
-                  <span className="font-mono tabular-nums">
-                    {formatTime(totalDisplayTime)}
-                  </span>
+                  <span className="font-mono tabular-nums">{formatTime(totalDisplayTime)}</span>
                 </div>
                 {transcriptQuality && (
                   <Badge variant={transcriptQuality.needsReview ? "destructive" : "secondary"} className="text-xs">
@@ -807,14 +792,13 @@ export function NoteEditor({
               </div>
             </div>
           </DialogHeader>
-          
+
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-6 space-y-4">
               <div className="text-sm text-muted-foreground mb-4">
-                {isRecording 
+                {isRecording
                   ? "Real-time transcription of your patient encounter. The transcript updates automatically as the conversation continues."
-                  : "Transcription of your patient encounter. Recording is currently paused - click 'Start Visit' to resume recording and live transcription."
-                }
+                  : "Transcription of your patient encounter. Recording is currently paused - click 'Start Visit' to resume recording and live transcription."}
               </div>
 
               {transcriptQuality?.needsReview && (
@@ -822,7 +806,7 @@ export function NoteEditor({
                   Transcript quality needs review. Low confidence or speaker-label issues were detected.
                 </div>
               )}
-              
+
               <div className="space-y-3">
                 {transcriptSegments.length === 0 && (
                   <div className="rounded-lg border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -836,19 +820,19 @@ export function NoteEditor({
                   const content = segment.text
                   const isLowConfidence = typeof segment.confidence === "number" && segment.confidence < 0.72
                   const isEditing = segment.id && editingSegmentId === segment.id
-                  
+
                   return (
-                    <div 
+                    <div
                       key={segment.id || `${segment.startMs}-${segment.endMs}-${index}`}
                       className={`flex gap-3 p-3 rounded-lg transition-all duration-300 ${
-                        isCurrent 
-                          ? 'bg-destructive/10 border border-destructive/20 shadow-sm' 
-                          : 'bg-muted/30'
+                        isCurrent ? "bg-destructive/10 border border-destructive/20 shadow-sm" : "bg-muted/30"
                       }`}
                     >
-                      <div className={`font-medium text-sm min-w-16 ${
-                        speaker === 'Doctor' ? 'text-primary' : 'text-blue-600'
-                      }`}>
+                      <div
+                        className={`font-medium text-sm min-w-16 ${
+                          speaker === "Doctor" ? "text-primary" : "text-blue-600"
+                        }`}
+                      >
                         {speaker}:
                       </div>
                       <div className="flex-1 space-y-2">
@@ -902,7 +886,7 @@ export function NoteEditor({
                             </div>
                           </div>
                         ) : (
-                          <div className={`text-sm leading-relaxed ${isCurrent ? 'font-medium' : ''}`}>
+                          <div className={`text-sm leading-relaxed ${isCurrent ? "font-medium" : ""}`}>
                             {content}
                             {isCurrent && isRecording && (
                               <span className="inline-block w-2 h-4 bg-destructive ml-1 animate-pulse"></span>
@@ -915,7 +899,12 @@ export function NoteEditor({
                           )}
                           {isLowConfidence && <Badge variant="outline">Low Confidence</Badge>}
                           {segment.id && !isEditing && (
-                            <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => openCorrectionEditor(segment)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2"
+                              onClick={() => openCorrectionEditor(segment)}
+                            >
                               Correct
                             </Button>
                           )}
@@ -925,7 +914,7 @@ export function NoteEditor({
                   )
                 })}
               </div>
-              
+
               {isRecording && (
                 <div className="text-center py-4">
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -936,12 +925,10 @@ export function NoteEditor({
               )}
             </div>
           </ScrollArea>
-          
+
           <div className="border-t border-border p-4 bg-muted/30 shrink-0">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div>
-                {transcriptSegments.length} lines transcribed
-              </div>
+              <div>{transcriptSegments.length} lines transcribed</div>
               <div className="flex items-center gap-4">
                 <div>
                   Words: ~
@@ -951,21 +938,16 @@ export function NoteEditor({
                 </div>
                 <div>
                   Confidence:{" "}
-                  {transcriptQuality
-                    ? `${Math.round(transcriptQuality.metrics.avgConfidence * 100)}%`
-                    : "N/A"}
+                  {transcriptQuality ? `${Math.round(transcriptQuality.metrics.avgConfidence * 100)}%` : "N/A"}
                 </div>
                 {transcriptQuality && transcriptQuality.needsReview && (
-                  <div className="text-amber-700">
-                    Review Needed ({transcriptQuality.issues.length} issues)
-                  </div>
+                  <div className="text-amber-700">Review Needed ({transcriptQuality.issues.length} issues)</div>
                 )}
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
 
       <WorkflowWizardOverlay
         isOpen={showFinalizationWizard}

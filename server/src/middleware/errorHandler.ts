@@ -55,7 +55,9 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     err instanceof Error
       ? {
           name: err.name,
-          messageHash: createHash("sha256").update(err.message ?? "").digest("hex"),
+          messageHash: createHash("sha256")
+            .update(err.message ?? "")
+            .digest("hex"),
           messageLength: (err.message ?? "").length
         }
       : {

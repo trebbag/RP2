@@ -11,10 +11,14 @@ export interface AuthUserRecord {
   email: string
   name: string
   role: "ADMIN" | "MA" | "CLINICIAN"
+  orgId?: string
+  orgName?: string | null
+  orgSlug?: string | null
   mfaEnabled?: boolean
 }
 
 export interface AuthPolicyRecord {
+  authMode: "local" | "oidc"
   passwordMinLength: number
   mfaRequired: boolean
   allowDevLogin: boolean
@@ -121,16 +125,12 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
   return response.json() as Promise<T>
 }
 
-export async function ensureDevSession(options?: {
-  forceDevLogin?: boolean
-}) {
+export async function ensureDevSession(options?: { forceDevLogin?: boolean }) {
   const existingToken = window.localStorage.getItem("rp_token")
   if (existingToken) return
 
   const allowDevLoginFlag = (import.meta.env.VITE_ALLOW_DEV_LOGIN as string | undefined) ?? "false"
-  const shouldUseDevLogin = options?.forceDevLogin
-    ? true
-    : import.meta.env.DEV && allowDevLoginFlag !== "false"
+  const shouldUseDevLogin = options?.forceDevLogin ? true : import.meta.env.DEV && allowDevLoginFlag !== "false"
   if (!shouldUseDevLogin) {
     await refreshSessionToken()
     return
@@ -168,6 +168,13 @@ export async function fetchAuthPolicy() {
   }
 
   return (await response.json()) as { policy: AuthPolicyRecord }
+}
+
+export function startOidcLogin(options?: { returnTo?: string }) {
+  const returnTo = options?.returnTo ?? window.location.href
+  window.localStorage.removeItem("rp_token")
+  const url = `${API_BASE_URL}/api/auth/oidc/login?returnTo=${encodeURIComponent(returnTo)}`
+  window.location.assign(url)
 }
 
 export async function fetchBootstrapStatus() {
@@ -629,7 +636,7 @@ export async function uploadTranscriptAudio(
 
   return response.json() as Promise<{
     accepted: boolean
-    provider: "openai" | "fallback"
+    provider: "openai" | "offlineMock" | "fallback"
     transcriptText: string
     warnings?: string[]
     segments: TranscriptSegmentRecord[]
@@ -702,7 +709,10 @@ export function streamEncounterTranscript(encounterId: string, handlers: StreamH
     })
 
     source.addEventListener("connected", (event) => {
-      const payload = JSON.parse((event as MessageEvent).data) as { encounterId: string; segments?: TranscriptSegmentRecord[] }
+      const payload = JSON.parse((event as MessageEvent).data) as {
+        encounterId: string
+        segments?: TranscriptSegmentRecord[]
+      }
       handlers.onConnected?.(payload)
     })
 
@@ -882,18 +892,21 @@ export async function fetchWizardState(encounterId: string) {
   }>(`/api/wizard/${encounterId}/state`)
 }
 
-export async function finalizeWizard(encounterId: string, body: {
-  finalNote: string
-  finalPatientSummary: string
-  attestClinicalAccuracy?: boolean
-  attestBillingAccuracy?: boolean
-  payerModel?: string
-  monthlyRevenueCents?: number
-  expectedCoderLiftPct?: number
-  deductibleRemainingCents?: number
-  coinsurancePct?: number
-  copayCents?: number
-}) {
+export async function finalizeWizard(
+  encounterId: string,
+  body: {
+    finalNote: string
+    finalPatientSummary: string
+    attestClinicalAccuracy?: boolean
+    attestBillingAccuracy?: boolean
+    payerModel?: string
+    monthlyRevenueCents?: number
+    expectedCoderLiftPct?: number
+    deductibleRemainingCents?: number
+    coinsurancePct?: number
+    copayCents?: number
+  }
+) {
   return request<{
     status: string
     artifacts: Array<{ id: string; type: "NOTE_PDF" | "PATIENT_SUMMARY_PDF" }>
@@ -930,14 +943,17 @@ export async function finalizeWizard(encounterId: string, body: {
   })
 }
 
-export async function previewBillingWizard(encounterId: string, body?: {
-  payerModel?: string
-  monthlyRevenueCents?: number
-  expectedCoderLiftPct?: number
-  deductibleRemainingCents?: number
-  coinsurancePct?: number
-  copayCents?: number
-}) {
+export async function previewBillingWizard(
+  encounterId: string,
+  body?: {
+    payerModel?: string
+    monthlyRevenueCents?: number
+    expectedCoderLiftPct?: number
+    deductibleRemainingCents?: number
+    coinsurancePct?: number
+    copayCents?: number
+  }
+) {
   return request<{
     billing: {
       payerModel: string
@@ -1136,9 +1152,7 @@ export interface ObservabilitySummaryRecord {
 
 export async function fetchObservabilitySummary(windowMinutes = 60) {
   const params = new URLSearchParams({ windowMinutes: String(windowMinutes) })
-  return request<{ summary: ObservabilitySummaryRecord }>(
-    `/api/admin/observability/summary?${params.toString()}`
-  )
+  return request<{ summary: ObservabilitySummaryRecord }>(`/api/admin/observability/summary?${params.toString()}`)
 }
 
 export interface ObservabilityTrendPointRecord {
@@ -1189,9 +1203,7 @@ export async function fetchObservabilityTrends(windowMinutes = 24 * 60, bucketMi
     windowMinutes: String(windowMinutes),
     bucketMinutes: String(bucketMinutes)
   })
-  return request<{ trends: ObservabilityTrendsRecord }>(
-    `/api/admin/observability/trends?${params.toString()}`
-  )
+  return request<{ trends: ObservabilityTrendsRecord }>(`/api/admin/observability/trends?${params.toString()}`)
 }
 
 export async function validateDispatchContract(body?: {

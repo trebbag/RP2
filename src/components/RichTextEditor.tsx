@@ -5,14 +5,14 @@ import { Textarea } from "./ui/textarea"
 import { ComplianceAlert } from "./ComplianceAlert"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
-import { 
-  Bold, 
-  Italic, 
-  Underline, 
-  List, 
-  ListOrdered, 
-  AlignLeft, 
-  AlignCenter, 
+import {
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  AlignLeft,
+  AlignCenter,
   AlignRight,
   Plus,
   ChevronDown
@@ -20,10 +20,10 @@ import {
 
 interface ComplianceIssue {
   id: string
-  severity: 'critical' | 'warning' | 'info'
+  severity: "critical" | "warning" | "info"
   title: string
   description: string
-  category: 'documentation' | 'coding' | 'billing' | 'quality'
+  category: "documentation" | "coding" | "billing" | "quality"
   details: string
   suggestion: string
   learnMoreUrl?: string
@@ -54,7 +54,14 @@ PLAN:
 Treatment plan:
 Follow-up:`
 
-export function RichTextEditor({ disabled = false, value, complianceIssues = [], onDismissIssue, onRestoreIssue, onContentChange }: RichTextEditorProps) {
+export function RichTextEditor({
+  disabled = false,
+  value,
+  complianceIssues = [],
+  onDismissIssue,
+  onRestoreIssue,
+  onContentChange
+}: RichTextEditorProps) {
   const [content, setContent] = useState(value || DEFAULT_TEMPLATE)
 
   useEffect(() => {
@@ -79,24 +86,24 @@ export function RichTextEditor({ disabled = false, value, complianceIssues = [],
     { icon: ListOrdered, label: "Numbered List" },
     { icon: AlignLeft, label: "Align Left" },
     { icon: AlignCenter, label: "Align Center" },
-    { icon: AlignRight, label: "Align Right" },
+    { icon: AlignRight, label: "Align Right" }
   ]
 
   // Add ref for textarea to handle text manipulation
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Function to get selected text or insert at cursor position
-  const insertTextAtCursor = (beforeText: string, afterText: string = '') => {
+  const insertTextAtCursor = (beforeText: string, afterText: string = "") => {
     if (!textareaRef.current) return
-    
+
     const textarea = textareaRef.current
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
     const selectedText = content.substring(start, end)
-    
+
     const newText = content.substring(0, start) + beforeText + selectedText + afterText + content.substring(end)
     handleContentChange(newText)
-    
+
     // Set cursor position after the inserted text
     setTimeout(() => {
       const newCursorPos = start + beforeText.length + selectedText.length + afterText.length
@@ -108,70 +115,68 @@ export function RichTextEditor({ disabled = false, value, complianceIssues = [],
   // Function to handle bullet list
   const insertBulletList = () => {
     if (!textareaRef.current) return
-    
+
     const textarea = textareaRef.current
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
     const selectedText = content.substring(start, end)
-    
+
     if (selectedText.trim()) {
       // Convert selected lines to bullet points
-      const lines = selectedText.split('\n')
-      const bulletLines = lines.map(line => line.trim() ? `• ${line.trim()}` : line).join('\n')
+      const lines = selectedText.split("\n")
+      const bulletLines = lines.map((line) => (line.trim() ? `• ${line.trim()}` : line)).join("\n")
       const newText = content.substring(0, start) + bulletLines + content.substring(end)
       handleContentChange(newText)
     } else {
       // Insert a new bullet point
-      insertTextAtCursor('• ', '')
+      insertTextAtCursor("• ", "")
     }
   }
 
   // Function to handle numbered list
   const insertNumberedList = () => {
     if (!textareaRef.current) return
-    
+
     const textarea = textareaRef.current
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
     const selectedText = content.substring(start, end)
-    
+
     if (selectedText.trim()) {
       // Convert selected lines to numbered list
-      const lines = selectedText.split('\n')
-      const numberedLines = lines.map((line, index) => 
-        line.trim() ? `${index + 1}. ${line.trim()}` : line
-      ).join('\n')
+      const lines = selectedText.split("\n")
+      const numberedLines = lines.map((line, index) => (line.trim() ? `${index + 1}. ${line.trim()}` : line)).join("\n")
       const newText = content.substring(0, start) + numberedLines + content.substring(end)
       handleContentChange(newText)
     } else {
       // Insert a new numbered item
-      insertTextAtCursor('1. ', '')
+      insertTextAtCursor("1. ", "")
     }
   }
 
   // Function to handle formatting buttons
   const handleFormat = (type: string) => {
     if (disabled) return
-    
+
     switch (type) {
-      case 'Bold':
-        insertTextAtCursor('**', '**')
+      case "Bold":
+        insertTextAtCursor("**", "**")
         break
-      case 'Italic':
-        insertTextAtCursor('*', '*')
+      case "Italic":
+        insertTextAtCursor("*", "*")
         break
-      case 'Underline':
-        insertTextAtCursor('_', '_')
+      case "Underline":
+        insertTextAtCursor("_", "_")
         break
-      case 'Bullet List':
+      case "Bullet List":
         insertBulletList()
         break
-      case 'Numbered List':
+      case "Numbered List":
         insertNumberedList()
         break
-      case 'Align Left':
-      case 'Align Center':
-      case 'Align Right':
+      case "Align Left":
+      case "Align Center":
+      case "Align Right":
         // For plain text, these might not be directly applicable, but we can add indicators
         break
       default:
@@ -182,28 +187,28 @@ export function RichTextEditor({ disabled = false, value, complianceIssues = [],
   // Function to insert template sections
   const insertSection = () => {
     if (disabled) return
-    
+
     const sections = [
-      'CHIEF COMPLAINT:',
-      'HISTORY OF PRESENT ILLNESS:',
-      'REVIEW OF SYSTEMS:',
-      'PAST MEDICAL HISTORY:',
-      'MEDICATIONS:',
-      'ALLERGIES:',
-      'SOCIAL HISTORY:',
-      'FAMILY HISTORY:',
-      'PHYSICAL EXAMINATION:',
-      'LABORATORY RESULTS:',
-      'IMAGING:',
-      'MEDICAL DECISION MAKING:',
-      'PATIENT EDUCATION:',
-      'FOLLOW-UP INSTRUCTIONS:'
+      "CHIEF COMPLAINT:",
+      "HISTORY OF PRESENT ILLNESS:",
+      "REVIEW OF SYSTEMS:",
+      "PAST MEDICAL HISTORY:",
+      "MEDICATIONS:",
+      "ALLERGIES:",
+      "SOCIAL HISTORY:",
+      "FAMILY HISTORY:",
+      "PHYSICAL EXAMINATION:",
+      "LABORATORY RESULTS:",
+      "IMAGING:",
+      "MEDICAL DECISION MAKING:",
+      "PATIENT EDUCATION:",
+      "FOLLOW-UP INSTRUCTIONS:"
     ]
-    
+
     // For now, let's insert a basic section template
     // In a real app, you might show a dropdown to choose from sections
-    const sectionText = '\n\nNEW SECTION:\n\n'
-    insertTextAtCursor(sectionText, '')
+    const sectionText = "\n\nNEW SECTION:\n\n"
+    insertTextAtCursor(sectionText, "")
   }
 
   // Template definitions with descriptions
@@ -211,7 +216,8 @@ export function RichTextEditor({ disabled = false, value, complianceIssues = [],
     {
       id: "soap",
       name: "SOAP Note",
-      description: "Structured note format: Subjective, Objective, Assessment, Plan. Ideal for most clinical encounters and problem-focused visits.",
+      description:
+        "Structured note format: Subjective, Objective, Assessment, Plan. Ideal for most clinical encounters and problem-focused visits.",
       content: `SUBJECTIVE:
 Chief Complaint: 
 History of Present Illness:
@@ -240,7 +246,8 @@ Return Precautions:`
     {
       id: "history-physical",
       name: "History & Physical",
-      description: "Comprehensive H&P format for new patients, consultations, or detailed evaluations. Includes comprehensive history and thorough physical examination.",
+      description:
+        "Comprehensive H&P format for new patients, consultations, or detailed evaluations. Includes comprehensive history and thorough physical examination.",
       content: `HISTORY OF PRESENT ILLNESS:
 
 PAST MEDICAL HISTORY:
@@ -285,7 +292,8 @@ ASSESSMENT AND PLAN:`
     {
       id: "followup",
       name: "Follow-up Visit",
-      description: "Streamlined format for established patients returning for routine follow-up or chronic disease management visits.",
+      description:
+        "Streamlined format for established patients returning for routine follow-up or chronic disease management visits.",
       content: `INTERVAL HISTORY:
 Since last visit:
 Current symptoms:
@@ -315,7 +323,8 @@ Patient counseling:`
     {
       id: "wellness",
       name: "Wellness/Preventive",
-      description: "Annual wellness visit or preventive care template. Focuses on health maintenance, screening, and prevention strategies.",
+      description:
+        "Annual wellness visit or preventive care template. Focuses on health maintenance, screening, and prevention strategies.",
       content: `HEALTH MAINTENANCE REVIEW:
 Immunizations:
 Cancer Screening:
@@ -348,7 +357,8 @@ Follow-up Recommendations:`
     {
       id: "procedure",
       name: "Procedure Note",
-      description: "Template for documenting minor office procedures, injections, or therapeutic interventions with pre/post care details.",
+      description:
+        "Template for documenting minor office procedures, injections, or therapeutic interventions with pre/post care details.",
       content: `PROCEDURE: [Procedure Name]
 
 INDICATION:
@@ -379,7 +389,7 @@ Return precautions:`
     }
   ]
 
-  const handleTemplateSelect = (template: typeof templates[0]) => {
+  const handleTemplateSelect = (template: (typeof templates)[0]) => {
     handleContentChange(template.content)
   }
 
@@ -389,7 +399,7 @@ Return precautions:`
       {complianceIssues.length > 0 && (
         <div className="absolute top-3 right-3 z-50 bg-background rounded-md">
           <div className="p-1">
-            <ComplianceAlert 
+            <ComplianceAlert
               issues={complianceIssues}
               onDismissIssue={onDismissIssue || (() => {})}
               onRestoreIssue={onRestoreIssue || (() => {})}
@@ -398,8 +408,8 @@ Return precautions:`
           </div>
         </div>
       )}
-      
-      <div className={`flex flex-col h-full ${disabled ? 'opacity-50' : ''}`}>
+
+      <div className={`flex flex-col h-full ${disabled ? "opacity-50" : ""}`}>
         {/* Formatting Toolbar */}
         <div className="border-b p-3 bg-background">
           <div className="flex items-center gap-1 justify-between">
@@ -418,9 +428,9 @@ Return precautions:`
                 </Button>
               ))}
               <Separator orientation="vertical" className="mx-2 h-6" />
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 title="Insert Template Section"
                 disabled={disabled}
                 onClick={insertSection}
@@ -428,17 +438,12 @@ Return precautions:`
                 <Plus className="h-4 w-4 mr-1" />
                 Section
               </Button>
-              
+
               {/* Template Selector with subtle separation */}
               <Separator orientation="vertical" className="mx-2 h-6" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-8"
-                    disabled={disabled}
-                  >
+                  <Button variant="ghost" size="sm" className="h-8" disabled={disabled}>
                     Templates
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
@@ -451,19 +456,15 @@ Return precautions:`
                       onClick={() => handleTemplateSelect(template)}
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-sm mb-1">
-                          {template.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground leading-relaxed">
-                          {template.description}
-                        </div>
+                        <div className="font-medium text-sm mb-1">{template.name}</div>
+                        <div className="text-xs text-muted-foreground leading-relaxed">{template.description}</div>
                       </div>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
+
             {/* Empty space where compliance alert used to be */}
             <div className="w-8 h-8"></div>
           </div>

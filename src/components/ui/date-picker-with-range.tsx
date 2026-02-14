@@ -12,11 +12,7 @@ interface DatePickerWithRangeProps {
   onDateChange?: (date: DateRange | undefined) => void
 }
 
-export function DatePickerWithRange({
-  className,
-  date,
-  onDateChange
-}: DatePickerWithRangeProps) {
+export function DatePickerWithRange({ className, date, onDateChange }: DatePickerWithRangeProps) {
   const [selectedDate, setSelectedDate] = React.useState<DateRange | undefined>(date)
 
   const handleDateChange = (newDate: DateRange | undefined) => {
@@ -31,17 +27,13 @@ export function DatePickerWithRange({
           <Button
             id="date"
             variant={"outline"}
-            className={cn(
-              "w-[300px] justify-start text-left font-normal",
-              !selectedDate && "text-muted-foreground"
-            )}
+            className={cn("w-[300px] justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {selectedDate?.from ? (
               selectedDate.to ? (
                 <>
-                  {selectedDate.from.toLocaleDateString()} -{" "}
-                  {selectedDate.to.toLocaleDateString()}
+                  {selectedDate.from.toLocaleDateString()} - {selectedDate.to.toLocaleDateString()}
                 </>
               ) : (
                 selectedDate.from.toLocaleDateString()

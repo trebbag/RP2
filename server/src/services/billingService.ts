@@ -281,20 +281,14 @@ export function calculateBillingEstimate(input: BillingInput) {
   const remainingAfterDeductibleCents = Math.max(0, allowedAmountCents - deductibleAppliedCents)
 
   const requestedCoinsurancePct = input.coinsurancePct ?? schedule.defaultCoinsurancePct
-  const appliedCoinsurancePct = Math.min(
-    schedule.rules.maxCoinsurancePct,
-    Math.max(0, requestedCoinsurancePct)
-  )
+  const appliedCoinsurancePct = Math.min(schedule.rules.maxCoinsurancePct, Math.max(0, requestedCoinsurancePct))
   const coinsuranceCents = Math.round(remainingAfterDeductibleCents * appliedCoinsurancePct)
 
   const requestedCopayCents = Math.max(0, input.copayCents ?? schedule.defaultCopayCents)
   const appliedCopayCents = Math.min(requestedCopayCents, schedule.rules.maxCopayCents)
   const copayCents = selectedCptCodes.length > 0 ? appliedCopayCents : 0
 
-  const outOfPocketCents = Math.min(
-    allowedAmountCents,
-    deductibleAppliedCents + coinsuranceCents + copayCents
-  )
+  const outOfPocketCents = Math.min(allowedAmountCents, deductibleAppliedCents + coinsuranceCents + copayCents)
   const expectedReimbursementCents = Math.max(allowedAmountCents - outOfPocketCents, 0)
 
   const priorMonthlyRevenueCents = input.priorMonthlyRevenueCents ?? 1_000_000

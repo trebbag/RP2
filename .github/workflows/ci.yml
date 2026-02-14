@@ -19,12 +19,17 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: PHI lint
-        run: npm run lint:phi
+      - name: Format check
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
       - name: Typecheck
         run: npm run typecheck
       - name: Test
         run: npm run test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenuepilot
+          JWT_SECRET: ci-jwt-secret-please-change
       - name: Build
         run: npm run build
         env:
@@ -48,7 +53,8 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenuepilot
+      DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/revenuepilot
+      DATABASE_URL: postgresql://rp2_app:rp2_app@localhost:5432/revenuepilot
       RP2_RUN_INTEGRATION: "1"
       RP2_OFFLINE_AI: "1"
       JWT_SECRET: ci-jwt-secret-please-change
@@ -63,8 +69,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: PHI lint
-        run: npm run lint:phi
+      - name: Format check
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
       - name: Prepare integration database
         run: npm run test:integration:prepare
       - name: Run integration tests
@@ -89,7 +97,8 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenuepilot
+      DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/revenuepilot
+      DATABASE_URL: postgresql://rp2_app:rp2_app@localhost:5432/revenuepilot
       RP2_RUN_INTEGRATION: "1"
       RP2_RUN_SOAK: "1"
       RP2_OFFLINE_AI: "1"
@@ -105,8 +114,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: PHI lint
-        run: npm run lint:phi
+      - name: Format check
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
       - name: Prepare integration database
         run: npm run test:integration:prepare
       - name: Run soak tests

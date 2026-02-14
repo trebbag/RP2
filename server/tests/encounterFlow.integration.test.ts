@@ -4,11 +4,13 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 import supertest from "supertest"
+import { clearTablesInOrder, createAdminPrisma, resolveIntegrationAdminDbUrl } from "./helpers/adminDb.js"
 
 const shouldRunIntegration = process.env.RP2_RUN_INTEGRATION === "1"
 const integrationDbUrl = process.env.RP2_INTEGRATION_DB_URL || process.env.DATABASE_URL
+const integrationAdminDbUrl = resolveIntegrationAdminDbUrl()
 
-if (!shouldRunIntegration || !integrationDbUrl) {
+if (!shouldRunIntegration || !integrationDbUrl || !integrationAdminDbUrl) {
   test("integration flow (skipped)", { skip: true }, () => {
     assert.ok(true)
   })
@@ -20,38 +22,18 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     process.env.STORAGE_DIR = process.env.STORAGE_DIR || "./storage"
 
     const { createApp } = await import("../src/app.js")
-    const { prisma } = await import("../src/lib/prisma.js")
+    const adminPrisma = createAdminPrisma()
 
     const app = createApp()
     const request = supertest(app)
 
-    await prisma.$connect()
-
-    const clearTablesInOrder = async () => {
-      await prisma.auditLog.deleteMany({})
-      await prisma.exportArtifact.deleteMany({})
-      await prisma.wizardStepState.deleteMany({})
-      await prisma.wizardRun.deleteMany({})
-      await prisma.complianceIssue.deleteMany({})
-      await prisma.codeSelection.deleteMany({})
-      await prisma.codeSuggestion.deleteMany({})
-      await prisma.suggestionGeneration.deleteMany({})
-      await prisma.transcriptSegment.deleteMany({})
-      await prisma.noteVersion.deleteMany({})
-      await prisma.note.deleteMany({})
-      await prisma.encounter.deleteMany({})
-      await prisma.chartAsset.deleteMany({})
-      await prisma.appointment.deleteMany({})
-      await prisma.patient.deleteMany({})
-      await prisma.user.deleteMany({})
-    }
-
-    await clearTablesInOrder()
+    await adminPrisma.$connect()
+    await clearTablesInOrder(adminPrisma)
 
     const login = await request.post("/api/auth/dev-login").send({
       email: "integration.clinician@revenuepilot.local",
       name: "Integration Clinician",
-      role: "CLINICIAN"
+      role: "ADMIN"
     })
 
     assert.equal(login.status, 200)
@@ -80,49 +62,40 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     const appointmentId = createdAppointment.body.appointment.id as string
     assert.ok(encounterId)
 
-    const uploadFixturePath = path.resolve(os.tmpdir(), `rp2-integration-${Date.now()}.txt`)
-    await fs.writeFile(
-      uploadFixturePath,
-      [
-        "Medications: Aspirin 81mg; Albuterol inhaler",
-        "Allergies: NKDA",
-        "PMH: Hypertension",
-        "BP: 128/82",
-        "HR: 76",
-        "Temp: 98.4 F",
-        "Lab: LDL=110 mg/dL H"
-      ].join("\n"),
-      "utf8"
-    )
+    const uploadFixturePath = path.resolve(process.cwd(), "tests", "fixtures", "charts", "text-chart.pdf")
 
     const uploadChart = await request
       .post(`/api/appointments/${appointmentId}/chart`)
       .set(auth)
       .attach("files", uploadFixturePath)
     assert.equal(uploadChart.status, 201)
-    await fs.rm(uploadFixturePath, { force: true })
+
+    const processCharts = await request.post("/api/admin/chart-extraction/process").set(auth).send({ limit: 10 })
+    assert.equal(processCharts.status, 200)
+
+    const charts = await request.get(`/api/appointments/${appointmentId}/charts?includeText=1`).set(auth)
+
+    assert.equal(charts.status, 200)
+    assert.ok(Array.isArray(charts.body.charts))
+    assert.ok(charts.body.charts.length >= 1)
+    assert.equal(charts.body.charts[0].extractionJob.status, "SUCCEEDED")
+    assert.ok((charts.body.charts[0].extractedText as string).includes("Medications:"))
 
     const startVisit = await request.post(`/api/encounters/${encounterId}/start`).set(auth).send({})
     assert.equal(startVisit.status, 200)
 
-    const appendTranscript = await request
-      .post(`/api/encounters/${encounterId}/transcript/segments`)
-      .set(auth)
-      .send({
-        speaker: "Patient",
-        text: "Cough has lasted two weeks and worsens with exertion.",
-        startMs: 0,
-        endMs: 6000,
-        confidence: 0.97
-      })
+    const appendTranscript = await request.post(`/api/encounters/${encounterId}/transcript/segments`).set(auth).send({
+      speaker: "Patient",
+      text: "Cough has lasted two weeks and worsens with exertion.",
+      startMs: 0,
+      endMs: 6000,
+      confidence: 0.97
+    })
     assert.equal(appendTranscript.status, 201)
 
     const noteContent = `HISTORY OF PRESENT ILLNESS:\nPatient reports chest pain with exertion for two days.\n\nASSESSMENT:\nChest pain, rule out cardiac etiology.\n\nPLAN:\nOrder EKG and follow-up in one week.`
 
-    const saveNote = await request
-      .post(`/api/encounters/${encounterId}/note`)
-      .set(auth)
-      .send({ content: noteContent })
+    const saveNote = await request.post(`/api/encounters/${encounterId}/note`).set(auth).send({ content: noteContent })
     assert.equal(saveNote.status, 200)
 
     const suggestions = await request
@@ -134,7 +107,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.ok(Array.isArray(suggestions.body.suggestions))
     assert.equal(typeof suggestions.body.promptVersionId, "string")
 
-    const suggestionTraceArtifact = await prisma.exportArtifact.findFirst({
+    const suggestionTraceArtifact = await adminPrisma.exportArtifact.findFirst({
       where: {
         encounter: { externalId: encounterId },
         type: "TRACE_JSON",
@@ -151,29 +124,23 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(suggestionTracePayload.promptVersionId, suggestions.body.promptVersionId)
     assert.equal(suggestionTracePayload.trace?.promptVersionId, suggestions.body.promptVersionId)
 
-    const keepSelection = await request
-      .post(`/api/wizard/${encounterId}/step/1/actions`)
-      .set(auth)
-      .send({
-        actionType: "keep",
-        code: "99213",
-        codeType: "CPT",
-        category: "CODE",
-        reason: "Integration test keep"
-      })
+    const keepSelection = await request.post(`/api/wizard/${encounterId}/step/1/actions`).set(auth).send({
+      actionType: "keep",
+      code: "99213",
+      codeType: "CPT",
+      category: "CODE",
+      reason: "Integration test keep"
+    })
 
     assert.equal(keepSelection.status, 200)
 
-    const compose = await request
-      .post(`/api/wizard/${encounterId}/compose`)
-      .set(auth)
-      .send({ noteContent })
+    const compose = await request.post(`/api/wizard/${encounterId}/compose`).set(auth).send({ noteContent })
 
     assert.equal(compose.status, 200)
     assert.ok(compose.body.traceId)
     assert.equal(typeof compose.body.promptVersionId, "string")
 
-    const composeTraceArtifact = await prisma.exportArtifact.findFirst({
+    const composeTraceArtifact = await adminPrisma.exportArtifact.findFirst({
       where: {
         encounter: { externalId: encounterId },
         type: "TRACE_JSON",
@@ -205,7 +172,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(compliance.status, 200)
     assert.equal(typeof compliance.body.promptVersionId, "string")
 
-    const complianceTraceArtifact = await prisma.exportArtifact.findFirst({
+    const complianceTraceArtifact = await adminPrisma.exportArtifact.findFirst({
       where: {
         encounter: { externalId: encounterId },
         type: "TRACE_JSON",
@@ -222,15 +189,12 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(complianceTracePayload.promptVersionId, compliance.body.promptVersionId)
     assert.equal(complianceTracePayload.trace?.promptVersionId, compliance.body.promptVersionId)
 
-    const finalize = await request
-      .post(`/api/wizard/${encounterId}/finalize`)
-      .set(auth)
-      .send({
-        finalNote: compose.body.enhancedNote,
-        finalPatientSummary: compose.body.patientSummary,
-        attestClinicalAccuracy: true,
-        attestBillingAccuracy: true
-      })
+    const finalize = await request.post(`/api/wizard/${encounterId}/finalize`).set(auth).send({
+      finalNote: compose.body.enhancedNote,
+      finalPatientSummary: compose.body.patientSummary,
+      attestClinicalAccuracy: true,
+      attestBillingAccuracy: true
+    })
 
     assert.equal(finalize.status, 200)
     assert.equal(finalize.body.status, "FINALIZED")
@@ -248,11 +212,13 @@ if (!shouldRunIntegration || !integrationDbUrl) {
 
     const drafts = await request.get("/api/drafts").set(auth)
     assert.equal(drafts.status, 200)
-    const finalizedDraft = drafts.body.drafts.find((draft: { encounterId: string }) => draft.encounterId === encounterId)
+    const finalizedDraft = drafts.body.drafts.find(
+      (draft: { encounterId: string }) => draft.encounterId === encounterId
+    )
     assert.ok(finalizedDraft)
     assert.equal(finalizedDraft.isFinal, true)
 
-    await clearTablesInOrder()
-    await prisma.$disconnect()
+    await clearTablesInOrder(adminPrisma)
+    await adminPrisma.$disconnect()
   })
 }

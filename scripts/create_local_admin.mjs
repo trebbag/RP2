@@ -31,6 +31,22 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const prisma = new PrismaClient()
+const SYSTEM_ORG_ID = "org_system"
+const DEFAULT_ORG_ID = "org_default"
+
+async function ensureTenantBootstrap() {
+  await prisma.organization.upsert({
+    where: { id: SYSTEM_ORG_ID },
+    update: { name: "System", slug: "system" },
+    create: { id: SYSTEM_ORG_ID, name: "System", slug: "system" }
+  })
+
+  await prisma.organization.upsert({
+    where: { id: DEFAULT_ORG_ID },
+    update: { name: "Default Organization", slug: "default" },
+    create: { id: DEFAULT_ORG_ID, name: "Default Organization", slug: "default" }
+  })
+}
 
 function hashPassword(rawPassword) {
   const salt = randomBytes(16).toString("hex")
@@ -39,6 +55,7 @@ function hashPassword(rawPassword) {
 }
 
 async function main() {
+  await ensureTenantBootstrap()
   const user = await prisma.user.upsert({
     where: { email },
     update: {
@@ -58,6 +75,23 @@ async function main() {
     }
   })
 
+  await prisma.membership.upsert({
+    where: {
+      orgId_userId: {
+        orgId: DEFAULT_ORG_ID,
+        userId: user.id
+      }
+    },
+    update: {
+      role: "ADMIN"
+    },
+    create: {
+      orgId: DEFAULT_ORG_ID,
+      userId: user.id,
+      role: "ADMIN"
+    }
+  })
+
   console.log(
     JSON.stringify(
       {
@@ -66,7 +100,8 @@ async function main() {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role
+          role: "ADMIN",
+          orgId: DEFAULT_ORG_ID
         },
         login: {
           email,

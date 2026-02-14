@@ -20,7 +20,9 @@
   },
   "dependencies": {
     "@openai/agents": "^0.4.6",
+    "@napi-rs/canvas": "^0.1.80",
     "@prisma/client": "^6.13.0",
+    "@tesseract.js-data/eng": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
@@ -29,7 +31,10 @@
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "nanoid": "^5.1.5",
+    "openid-client": "^6.8.2",
+    "pdfjs-dist": "^4.10.38",
     "pdfkit": "^0.17.2",
+    "tesseract.js": "^5.1.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {

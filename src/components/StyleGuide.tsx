@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { 
-  FileText, 
-  Stethoscope, 
-  Bell, 
-  Settings, 
+import {
+  FileText,
+  Stethoscope,
+  Bell,
+  Settings,
   ChevronRight,
   Calendar,
   Clock,
@@ -97,7 +97,9 @@ export function StyleGuide() {
 
                   {/* Clinical Typography Examples */}
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Clinical Context Examples</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">
+                      Clinical Context Examples
+                    </p>
                     <div className="space-y-4">
                       <div className="p-4 border rounded-lg">
                         <h3 className="font-medium mb-2">Navigation Item</h3>
@@ -106,7 +108,9 @@ export function StyleGuide() {
                       </div>
                       <div className="p-4 border rounded-lg">
                         <h3 className="font-medium mb-2">Section Header</h3>
-                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tools & Resources</h4>
+                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Tools & Resources
+                        </h4>
                       </div>
                     </div>
                   </div>
@@ -120,33 +124,31 @@ export function StyleGuide() {
             <Card>
               <CardHeader>
                 <CardTitle>Color Palette</CardTitle>
-                <CardDescription>
-                  Professional clinical color system with light/dark mode support
-                </CardDescription>
+                <CardDescription>Professional clinical color system with light/dark mode support</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Primary Colors */}
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Primary Colors</p>
                   <div className="grid grid-cols-2 gap-4">
-                    <div 
+                    <div
                       className="p-4 bg-primary text-primary-foreground rounded-lg cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('primary')}
+                      onMouseEnter={() => setHoveredColor("primary")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Primary</div>
                       <div className="text-sm opacity-80">
-                        {hoveredColor === 'primary' ? '#030213 / oklch(0.145 0 0)' : 'Main brand color'}
+                        {hoveredColor === "primary" ? "#030213 / oklch(0.145 0 0)" : "Main brand color"}
                       </div>
                     </div>
-                    <div 
+                    <div
                       className="p-4 bg-secondary text-secondary-foreground rounded-lg cursor-pointer border"
-                      onMouseEnter={() => setHoveredColor('secondary')}
+                      onMouseEnter={() => setHoveredColor("secondary")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Secondary</div>
                       <div className="text-sm opacity-80">
-                        {hoveredColor === 'secondary' ? 'oklch(0.95 0.0058 264.53)' : 'Supporting color'}
+                        {hoveredColor === "secondary" ? "oklch(0.95 0.0058 264.53)" : "Supporting color"}
                       </div>
                     </div>
                   </div>
@@ -156,35 +158,33 @@ export function StyleGuide() {
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Background Colors</p>
                   <div className="grid grid-cols-3 gap-4">
-                    <div 
+                    <div
                       className="p-4 bg-background text-foreground rounded-lg border cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('background')}
+                      onMouseEnter={() => setHoveredColor("background")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Background</div>
                       <div className="text-sm opacity-70">
-                        {hoveredColor === 'background' ? '#ffffff' : 'Main background'}
+                        {hoveredColor === "background" ? "#ffffff" : "Main background"}
                       </div>
                     </div>
-                    <div 
+                    <div
                       className="p-4 bg-muted text-foreground rounded-lg cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('muted')}
+                      onMouseEnter={() => setHoveredColor("muted")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Muted</div>
                       <div className="text-sm opacity-70">
-                        {hoveredColor === 'muted' ? '#ececf0' : 'Subtle background'}
+                        {hoveredColor === "muted" ? "#ececf0" : "Subtle background"}
                       </div>
                     </div>
-                    <div 
+                    <div
                       className="p-4 bg-accent text-accent-foreground rounded-lg cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('accent')}
+                      onMouseEnter={() => setHoveredColor("accent")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Accent</div>
-                      <div className="text-sm opacity-70">
-                        {hoveredColor === 'accent' ? '#e9ebef' : 'Hover states'}
-                      </div>
+                      <div className="text-sm opacity-70">{hoveredColor === "accent" ? "#e9ebef" : "Hover states"}</div>
                     </div>
                   </div>
                 </div>
@@ -208,24 +208,24 @@ export function StyleGuide() {
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Sidebar Colors</p>
                   <div className="grid grid-cols-2 gap-4">
-                    <div 
+                    <div
                       className="p-4 bg-sidebar text-sidebar-foreground rounded-lg border cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('sidebar')}
+                      onMouseEnter={() => setHoveredColor("sidebar")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Sidebar Background</div>
                       <div className="text-sm opacity-70">
-                        {hoveredColor === 'sidebar' ? 'oklch(0.985 0 0)' : 'Navigation background'}
+                        {hoveredColor === "sidebar" ? "oklch(0.985 0 0)" : "Navigation background"}
                       </div>
                     </div>
-                    <div 
+                    <div
                       className="p-4 bg-sidebar-primary text-sidebar-primary-foreground rounded-lg cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('sidebar-primary')}
+                      onMouseEnter={() => setHoveredColor("sidebar-primary")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Sidebar Primary</div>
                       <div className="text-sm opacity-80">
-                        {hoveredColor === 'sidebar-primary' ? '#030213' : 'Active navigation'}
+                        {hoveredColor === "sidebar-primary" ? "#030213" : "Active navigation"}
                       </div>
                     </div>
                   </div>
@@ -235,14 +235,14 @@ export function StyleGuide() {
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">State Colors</p>
                   <div className="grid grid-cols-1 gap-4">
-                    <div 
+                    <div
                       className="p-4 bg-destructive text-destructive-foreground rounded-lg cursor-pointer"
-                      onMouseEnter={() => setHoveredColor('destructive')}
+                      onMouseEnter={() => setHoveredColor("destructive")}
                       onMouseLeave={() => setHoveredColor(null)}
                     >
                       <div className="font-medium">Destructive</div>
                       <div className="text-sm opacity-80">
-                        {hoveredColor === 'destructive' ? '#d4183d' : 'Error and danger states'}
+                        {hoveredColor === "destructive" ? "#d4183d" : "Error and danger states"}
                       </div>
                     </div>
                   </div>
@@ -256,9 +256,7 @@ export function StyleGuide() {
             <Card>
               <CardHeader>
                 <CardTitle>Spacing System</CardTitle>
-                <CardDescription>
-                  Consistent spacing scale using Tailwind's spacing tokens
-                </CardDescription>
+                <CardDescription>Consistent spacing scale using Tailwind's spacing tokens</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Standard Spacing Scale */}
@@ -266,18 +264,20 @@ export function StyleGuide() {
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Standard Spacing Scale</p>
                   <div className="space-y-3">
                     {[
-                      { size: '0.5', rem: '0.125rem', px: '2px' },
-                      { size: '1', rem: '0.25rem', px: '4px' },
-                      { size: '2', rem: '0.5rem', px: '8px' },
-                      { size: '3', rem: '0.75rem', px: '12px' },
-                      { size: '4', rem: '1rem', px: '16px' },
-                      { size: '6', rem: '1.5rem', px: '24px' },
-                      { size: '8', rem: '2rem', px: '32px' },
+                      { size: "0.5", rem: "0.125rem", px: "2px" },
+                      { size: "1", rem: "0.25rem", px: "4px" },
+                      { size: "2", rem: "0.5rem", px: "8px" },
+                      { size: "3", rem: "0.75rem", px: "12px" },
+                      { size: "4", rem: "1rem", px: "16px" },
+                      { size: "6", rem: "1.5rem", px: "24px" },
+                      { size: "8", rem: "2rem", px: "32px" }
                     ].map(({ size, rem, px }) => (
                       <div key={size} className="flex items-center gap-4">
                         <div className={`bg-primary h-4`} style={{ width: rem }}></div>
                         <code className="text-sm font-mono">space-{size}</code>
-                        <span className="text-sm text-muted-foreground">{rem} ({px})</span>
+                        <span className="text-sm text-muted-foreground">
+                          {rem} ({px})
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -293,7 +293,9 @@ export function StyleGuide() {
                         <FileText className="w-6 h-6 mr-3" />
                         <span className="font-medium">Documentation</span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">Padding: 12px (p-3), Icon margin: 12px (mr-3)</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Padding: 12px (p-3), Icon margin: 12px (mr-3)
+                      </p>
                     </div>
 
                     <div className="border rounded-lg p-4">
@@ -305,7 +307,9 @@ export function StyleGuide() {
                         </div>
                         <div className="p-4 space-y-4">
                           <p>Card Content</p>
-                          <p className="text-sm text-muted-foreground">Content padding: 16px (p-4), Item spacing: 16px (space-y-4)</p>
+                          <p className="text-sm text-muted-foreground">
+                            Content padding: 16px (p-4), Item spacing: 16px (space-y-4)
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -356,9 +360,7 @@ export function StyleGuide() {
             <Card>
               <CardHeader>
                 <CardTitle>Buttons & Interactive Elements</CardTitle>
-                <CardDescription>
-                  Button variants, states, and form components
-                </CardDescription>
+                <CardDescription>Button variants, states, and form components</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Button Variants */}
@@ -370,11 +372,15 @@ export function StyleGuide() {
                       <p className="text-sm text-muted-foreground">Default action button</p>
                     </div>
                     <div className="space-y-3">
-                      <Button variant="secondary" className="w-full">Secondary Button</Button>
+                      <Button variant="secondary" className="w-full">
+                        Secondary Button
+                      </Button>
                       <p className="text-sm text-muted-foreground">Alternative actions</p>
                     </div>
                     <div className="space-y-3">
-                      <Button variant="outline" className="w-full">Outline Button</Button>
+                      <Button variant="outline" className="w-full">
+                        Outline Button
+                      </Button>
                       <p className="text-sm text-muted-foreground">Less emphasized</p>
                     </div>
                   </div>
@@ -387,7 +393,9 @@ export function StyleGuide() {
                     <Button size="sm">Small</Button>
                     <Button size="default">Default</Button>
                     <Button size="lg">Large</Button>
-                    <Button size="icon"><Plus className="w-4 h-4" /></Button>
+                    <Button size="icon">
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
                   <div className="mt-4 text-sm text-muted-foreground space-y-1">
                     <p>Small: h-8 (32px) · Medium: h-9 (36px) · Large: h-10 (40px) · Icon: 36×36px</p>
@@ -446,7 +454,9 @@ export function StyleGuide() {
                     <p className="text-sm text-muted-foreground">Clinical badge examples:</p>
                     <div className="flex gap-2">
                       <Badge className="text-xs px-2 py-0.5">3</Badge>
-                      <Badge variant="outline" className="text-xs px-2 py-0.5">2</Badge>
+                      <Badge variant="outline" className="text-xs px-2 py-0.5">
+                        2
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -459,9 +469,7 @@ export function StyleGuide() {
             <Card>
               <CardHeader>
                 <CardTitle>Icons & Visual Elements</CardTitle>
-                <CardDescription>
-                  Lucide React icons with consistent sizing and styling
-                </CardDescription>
+                <CardDescription>Lucide React icons with consistent sizing and styling</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Icon Sizes */}
@@ -507,7 +515,7 @@ export function StyleGuide() {
                       { icon: Bell, name: "Bell", usage: "Notifications" },
                       { icon: Settings, name: "Settings", usage: "Configuration" },
                       { icon: Plus, name: "Plus", usage: "Add/Create" },
-                      { icon: X, name: "X", usage: "Close/Remove" },
+                      { icon: X, name: "X", usage: "Close/Remove" }
                     ].map(({ icon: Icon, name, usage }) => (
                       <div key={name} className="text-center p-3 border rounded-lg">
                         <Icon className="w-6 h-6 mx-auto mb-2" />
@@ -577,9 +585,7 @@ export function StyleGuide() {
             <Card>
               <CardHeader>
                 <CardTitle>UI Tone & Visual Style</CardTitle>
-                <CardDescription>
-                  Professional, minimalist design principles for clinical environments
-                </CardDescription>
+                <CardDescription>Professional, minimalist design principles for clinical environments</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Design Principles */}
@@ -589,21 +595,29 @@ export function StyleGuide() {
                     <div className="space-y-4">
                       <div className="p-4 border rounded-lg">
                         <h4 className="font-medium mb-2">🎯 Clinical Focus</h4>
-                        <p className="text-sm text-muted-foreground">Clean, distraction-free interface prioritizing clinical workflow efficiency</p>
+                        <p className="text-sm text-muted-foreground">
+                          Clean, distraction-free interface prioritizing clinical workflow efficiency
+                        </p>
                       </div>
                       <div className="p-4 border rounded-lg">
                         <h4 className="font-medium mb-2">📊 Information Dense</h4>
-                        <p className="text-sm text-muted-foreground">Optimized for displaying complex medical data and coding information</p>
+                        <p className="text-sm text-muted-foreground">
+                          Optimized for displaying complex medical data and coding information
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-4">
                       <div className="p-4 border rounded-lg">
                         <h4 className="font-medium mb-2">🔒 Professional Trust</h4>
-                        <p className="text-sm text-muted-foreground">Conservative color palette and typography conveying reliability and professionalism</p>
+                        <p className="text-sm text-muted-foreground">
+                          Conservative color palette and typography conveying reliability and professionalism
+                        </p>
                       </div>
                       <div className="p-4 border rounded-lg">
                         <h4 className="font-medium mb-2">⚡ Performance First</h4>
-                        <p className="text-sm text-muted-foreground">Lightweight animations and transitions that enhance without hindering workflow</p>
+                        <p className="text-sm text-muted-foreground">
+                          Lightweight animations and transitions that enhance without hindering workflow
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -658,7 +672,9 @@ export function StyleGuide() {
                           <FileText className="w-4 h-4" />
                           <span className="text-sm">Subtle hover transitions (200ms)</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">Micro-interactions enhance usability without distraction</p>
+                        <p className="text-sm text-muted-foreground">
+                          Micro-interactions enhance usability without distraction
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -666,7 +682,9 @@ export function StyleGuide() {
 
                 {/* Accessibility Considerations */}
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Accessibility & Standards</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">
+                    Accessibility & Standards
+                  </p>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="p-4 border rounded-lg">
                       <h4 className="font-medium mb-2">Color Contrast</h4>
@@ -674,7 +692,9 @@ export function StyleGuide() {
                         <div className="px-3 py-2 bg-primary text-primary-foreground rounded">
                           <span className="text-sm font-medium">AA Compliant</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">High contrast ratios ensure readability in clinical environments</p>
+                        <p className="text-sm text-muted-foreground">
+                          High contrast ratios ensure readability in clinical environments
+                        </p>
                       </div>
                     </div>
                     <div className="p-4 border rounded-lg">
@@ -682,7 +702,9 @@ export function StyleGuide() {
                       <Button className="focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                         Keyboard Accessible
                       </Button>
-                      <p className="text-sm text-muted-foreground mt-2">Clear focus indicators for keyboard navigation</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Clear focus indicators for keyboard navigation
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { buildSuggestionInputHash, generateSuggestions, shouldRefreshSuggestions } from "../src/services/suggestionService.js"
+import {
+  buildSuggestionInputHash,
+  generateSuggestions,
+  shouldRefreshSuggestions
+} from "../src/services/suggestionService.js"
 
 test("buildSuggestionInputHash is deterministic", () => {
   const input = {
@@ -19,11 +23,23 @@ test("generateSuggestions returns diagnosis and CPT candidates for chest pain", 
     chartContext: { medications: ["aspirin"] }
   })
 
-  assert.equal(suggestions.some((item) => item.code === "I25.10"), true)
-  assert.equal(suggestions.some((item) => item.code === "93000"), true)
+  assert.equal(
+    suggestions.some((item) => item.code === "I25.10"),
+    true
+  )
+  assert.equal(
+    suggestions.some((item) => item.code === "93000"),
+    true
+  )
 })
 
 test("shouldRefreshSuggestions applies threshold policy", () => {
-  assert.equal(shouldRefreshSuggestions({ noteDeltaChars: 10, transcriptDeltaChars: 10, secondsSinceLastRefresh: 20 }), false)
-  assert.equal(shouldRefreshSuggestions({ noteDeltaChars: 150, transcriptDeltaChars: 0, secondsSinceLastRefresh: 20 }), true)
+  assert.equal(
+    shouldRefreshSuggestions({ noteDeltaChars: 10, transcriptDeltaChars: 10, secondsSinceLastRefresh: 20 }),
+    false
+  )
+  assert.equal(
+    shouldRefreshSuggestions({ noteDeltaChars: 150, transcriptDeltaChars: 0, secondsSinceLastRefresh: 20 }),
+    true
+  )
 })

@@ -1,4 +1,5 @@
 interface RotationEventInput {
+    orgId: string;
     actorId: string;
     ticketId: string;
     secrets: string[];
@@ -10,7 +11,7 @@ export declare function recordSecretRotationEvent(input: RotationEventInput): Pr
     secrets: string[];
     rotatedAt: string;
 }>;
-export declare function getSecretRotationStatus(): Promise<{
+export declare function getSecretRotationStatus(orgId: string): Promise<{
     policy: {
         maxAgeDays: number;
     };

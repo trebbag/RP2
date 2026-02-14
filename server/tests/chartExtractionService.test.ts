@@ -24,9 +24,7 @@ test("extractStructuredChart normalizes meds, vitals, and labs from text chart",
   const extracted = await extractStructuredChart({
     filePath: fixturePath,
     fileName: "fixture.txt",
-    mimeType: "text/plain",
-    patientId: "PAT-123",
-    encounterId: "ENC-123"
+    mimeType: "text/plain"
   })
 
   await fs.rm(fixturePath, { force: true })
@@ -35,4 +33,30 @@ test("extractStructuredChart normalizes meds, vitals, and labs from text chart",
   assert.equal(extracted.extractedJson.vitals.bpSystolic, 130)
   assert.equal(extracted.extractedJson.vitals.bpDiastolic, 82)
   assert.equal(extracted.extractedJson.labs.length > 0, true)
+})
+
+test("extractStructuredChart extracts embedded text from PDF fixture", async () => {
+  const fixturePath = path.resolve(process.cwd(), "tests", "fixtures", "charts", "text-chart.pdf")
+  const extracted = await extractStructuredChart({
+    filePath: fixturePath,
+    fileName: "text-chart.pdf",
+    mimeType: "application/pdf"
+  })
+
+  assert.equal(extracted.extractedJson.extraction.method, "pdf_text")
+  assert.ok(extracted.rawText.includes("TEXT_PDF_FIXTURE"))
+  assert.equal(extracted.extractedJson.medications.includes("Aspirin 81mg"), true)
+})
+
+test("extractStructuredChart OCRs scanned PDF fixture when embedded text is missing", async () => {
+  const fixturePath = path.resolve(process.cwd(), "tests", "fixtures", "charts", "scanned-chart.pdf")
+  const extracted = await extractStructuredChart({
+    filePath: fixturePath,
+    fileName: "scanned-chart.pdf",
+    mimeType: "application/pdf"
+  })
+
+  assert.equal(extracted.extractedJson.extraction.method, "pdf_ocr")
+  const normalized = extracted.rawText.toUpperCase().replace(/\s+/g, " ")
+  assert.ok(normalized.includes("OCRFIXTURE"))
 })

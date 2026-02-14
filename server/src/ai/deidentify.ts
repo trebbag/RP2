@@ -1,4 +1,5 @@
 import { assertNoPhiPayload, isForbiddenPhiKey } from "./phiGuards.js"
+import { asDeidentifiedText, type DeidentifiedText } from "../phi.js"
 
 export interface TextRedactionSummary {
   emailCount: number
@@ -23,13 +24,13 @@ export interface EncounterDeidentifyInput {
 }
 
 export interface DeidentifiedEncounterContext {
-  noteText: string
-  transcriptText: string
+  noteText: DeidentifiedText
+  transcriptText: DeidentifiedText
   chartFacts: Record<string, unknown> | null
   metadata: Record<string, unknown> | null
   selectedCodes: string[]
-  speakerHint?: string
-  speakerHints: string[]
+  speakerHint?: DeidentifiedText
+  speakerHints: DeidentifiedText[]
   redactionSummary: EncounterRedactionSummary
 }
 
@@ -72,7 +73,7 @@ function combineSummaries(parts: TextRedactionSummary[]): TextRedactionSummary {
   }
 }
 
-export function deidentifyText(text: string): { text: string; redactionSummary: TextRedactionSummary } {
+export function deidentifyText(text: string): { text: DeidentifiedText; redactionSummary: TextRedactionSummary } {
   const emailStep = replaceWithCount(text, EMAIL_PATTERN, "[REDACTED_EMAIL]")
   const phoneStep = replaceWithCount(emailStep.text, PHONE_PATTERN, "[REDACTED_PHONE]")
   const ssnStep = replaceWithCount(phoneStep.text, SSN_PATTERN, "[REDACTED_SSN]")
@@ -85,7 +86,7 @@ export function deidentifyText(text: string): { text: string; redactionSummary: 
     total: emailStep.count + phoneStep.count + ssnStep.count + dateStep.count
   }
   return {
-    text: dateStep.text,
+    text: asDeidentifiedText(dateStep.text),
     redactionSummary
   }
 }
@@ -198,4 +199,3 @@ export function deidentifyEncounterContext(input: EncounterDeidentifyInput): Dei
   assertNoPhiPayload(deidentified)
   return deidentified
 }
-

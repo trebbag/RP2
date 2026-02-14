@@ -9,6 +9,7 @@ interface AuditInput {
     details?: unknown;
 }
 interface SystemAuditInput {
+    orgId?: string;
     action: string;
     entity: string;
     entityId: string;

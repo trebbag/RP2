@@ -4,11 +4,13 @@ import os from "node:os"
 import path from "node:path"
 import test from "node:test"
 import supertest from "supertest"
+import { clearTablesInOrder, createAdminPrisma, resolveIntegrationAdminDbUrl } from "./helpers/adminDb.js"
 
 const shouldRunIntegration = process.env.RP2_RUN_INTEGRATION === "1"
 const integrationDbUrl = process.env.RP2_INTEGRATION_DB_URL || process.env.DATABASE_URL
+const integrationAdminDbUrl = resolveIntegrationAdminDbUrl()
 
-if (!shouldRunIntegration || !integrationDbUrl) {
+if (!shouldRunIntegration || !integrationDbUrl || !integrationAdminDbUrl) {
   test("role matrix + audit retention integration (skipped)", { skip: true }, () => {
     assert.ok(true)
   })
@@ -21,33 +23,13 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     process.env.AUDIT_RETENTION_DAYS = process.env.AUDIT_RETENTION_DAYS || "30"
 
     const { createApp } = await import("../src/app.js")
-    const { prisma } = await import("../src/lib/prisma.js")
+    const adminPrisma = createAdminPrisma()
 
     const app = createApp()
     const request = supertest(app)
 
-    await prisma.$connect()
-
-    const clearTablesInOrder = async () => {
-      await prisma.auditLog.deleteMany({})
-      await prisma.exportArtifact.deleteMany({})
-      await prisma.wizardStepState.deleteMany({})
-      await prisma.wizardRun.deleteMany({})
-      await prisma.complianceIssue.deleteMany({})
-      await prisma.codeSelection.deleteMany({})
-      await prisma.codeSuggestion.deleteMany({})
-      await prisma.suggestionGeneration.deleteMany({})
-      await prisma.transcriptSegment.deleteMany({})
-      await prisma.noteVersion.deleteMany({})
-      await prisma.note.deleteMany({})
-      await prisma.encounter.deleteMany({})
-      await prisma.chartAsset.deleteMany({})
-      await prisma.appointment.deleteMany({})
-      await prisma.patient.deleteMany({})
-      await prisma.user.deleteMany({})
-    }
-
-    await clearTablesInOrder()
+    await adminPrisma.$connect()
+    await clearTablesInOrder(adminPrisma)
 
     const login = async (role: "ADMIN" | "MA" | "CLINICIAN", email: string) => {
       const response = await request.post("/api/auth/dev-login").send({
@@ -56,13 +38,20 @@ if (!shouldRunIntegration || !integrationDbUrl) {
         role
       })
       assert.equal(response.status, 200)
-      return { Authorization: `Bearer ${response.body.token}` }
+      return {
+        headers: { Authorization: `Bearer ${response.body.token}` },
+        orgId: response.body.user.orgId as string
+      }
     }
 
-    const clinicianAuth = await login("CLINICIAN", "integration.clinician@revenuepilot.local")
-    const maAuth = await login("MA", "integration.ma@revenuepilot.local")
-    const adminAuth = await login("ADMIN", "integration.admin@revenuepilot.local")
-    const clinicianUser = await prisma.user.findUnique({
+    const clinicianLogin = await login("CLINICIAN", "integration.clinician@revenuepilot.local")
+    const maLogin = await login("MA", "integration.ma@revenuepilot.local")
+    const adminLogin = await login("ADMIN", "integration.admin@revenuepilot.local")
+    const clinicianAuth = clinicianLogin.headers
+    const maAuth = maLogin.headers
+    const adminAuth = adminLogin.headers
+    const orgId = clinicianLogin.orgId
+    const clinicianUser = await adminPrisma.user.findUnique({
       where: { email: "integration.clinician@revenuepilot.local" }
     })
     assert.ok(clinicianUser)
@@ -86,11 +75,14 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     const encounterId = createdByClinician.body.appointment.encounterId as string
     const appointmentId = createdByClinician.body.appointment.id as string
 
-    const createdByMa = await request.post("/api/appointments").set(maAuth).send({
-      ...createAppointmentBody,
-      patientName: "MA Created Patient",
-      patientEmail: "ma.patient@example.com"
-    })
+    const createdByMa = await request
+      .post("/api/appointments")
+      .set(maAuth)
+      .send({
+        ...createAppointmentBody,
+        patientName: "MA Created Patient",
+        patientEmail: "ma.patient@example.com"
+      })
     assert.equal(createdByMa.status, 201)
 
     const maStartForbidden = await request.post(`/api/encounters/${encounterId}/start`).set(maAuth).send({})
@@ -98,6 +90,11 @@ if (!shouldRunIntegration || !integrationDbUrl) {
 
     const clinicianStart = await request.post(`/api/encounters/${encounterId}/start`).set(clinicianAuth).send({})
     assert.equal(clinicianStart.status, 200)
+
+    const maTranscriptStreamForbidden = await request
+      .get(`/api/encounters/${encounterId}/transcript/stream`)
+      .set(maAuth)
+    assert.equal(maTranscriptStreamForbidden.status, 403)
 
     const uploadFixturePath = path.resolve(os.tmpdir(), `rp2-role-${Date.now()}.txt`)
     await fs.writeFile(
@@ -154,13 +151,16 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     const clinicianActivityWithBackendFlag = await request.get("/api/activity?includeBackend=true").set(clinicianAuth)
     assert.equal(clinicianActivityWithBackendFlag.status, 200)
     assert.equal(
-      clinicianActivityWithBackendFlag.body.activities.some((entry: { category: string }) => entry.category === "backend"),
+      clinicianActivityWithBackendFlag.body.activities.some(
+        (entry: { category: string }) => entry.category === "backend"
+      ),
       false
     )
 
-    await prisma.auditLog.createMany({
+    await adminPrisma.auditLog.createMany({
       data: [
         {
+          orgId,
           actorId: clinicianUser!.id,
           action: "auth_login_failed",
           entity: "auth",
@@ -168,6 +168,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
           createdAt: new Date(Date.now() - 10_000)
         },
         {
+          orgId,
           actorId: clinicianUser!.id,
           action: "settings_update",
           entity: "user_settings",
@@ -175,6 +176,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
           createdAt: new Date(Date.now() - 9_000)
         },
         {
+          orgId,
           action: "dispatch_failed_terminal",
           entity: "dispatch_job",
           entityId: "dispatch-filter-seed",
@@ -214,22 +216,26 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(typeof adminPagedFirst.body.pageInfo.nextCursor, "string")
 
     const adminPagedSecond = await request
-      .get(`/api/activity?limit=1&includeBackend=true&cursor=${encodeURIComponent(adminPagedFirst.body.pageInfo.nextCursor)}`)
+      .get(
+        `/api/activity?limit=1&includeBackend=true&cursor=${encodeURIComponent(adminPagedFirst.body.pageInfo.nextCursor)}`
+      )
       .set(adminAuth)
     assert.equal(adminPagedSecond.status, 200)
     if (adminPagedSecond.body.activities.length > 0) {
       assert.notEqual(adminPagedFirst.body.activities[0].id, adminPagedSecond.body.activities[0].id)
     }
 
-    await prisma.auditLog.createMany({
+    await adminPrisma.auditLog.createMany({
       data: [
         {
+          orgId,
           action: "manual_seed",
           entity: "audit",
           entityId: "old-record",
           createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)
         },
         {
+          orgId,
           action: "manual_seed",
           entity: "audit",
           entityId: "recent-record",
@@ -260,10 +266,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
       .send({ dryRun: true })
     assert.equal(maAdminEndpointForbidden.status, 403)
 
-    const dispatchRetry = await request
-      .post("/api/admin/dispatch/retry-due")
-      .set(adminAuth)
-      .send({ limit: 10 })
+    const dispatchRetry = await request.post("/api/admin/dispatch/retry-due").set(adminAuth).send({ limit: 10 })
     assert.equal(dispatchRetry.status, 200)
     assert.ok(Array.isArray(dispatchRetry.body.processed))
 
@@ -274,21 +277,15 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     const dispatchListForbidden = await request.get("/api/admin/dispatch/jobs").set(maAuth)
     assert.equal(dispatchListForbidden.status, 403)
 
-    const contractValidation = await request
-      .post("/api/admin/dispatch/contract/validate")
-      .set(adminAuth)
-      .send({
-        target: "FHIR_R4"
-      })
+    const contractValidation = await request.post("/api/admin/dispatch/contract/validate").set(adminAuth).send({
+      target: "FHIR_R4"
+    })
     assert.equal(contractValidation.status, 200)
     assert.equal(typeof contractValidation.body.validation.ok, "boolean")
 
-    const contractValidationForbidden = await request
-      .post("/api/admin/dispatch/contract/validate")
-      .set(maAuth)
-      .send({
-        target: "FHIR_R4"
-      })
+    const contractValidationForbidden = await request.post("/api/admin/dispatch/contract/validate").set(maAuth).send({
+      target: "FHIR_R4"
+    })
     assert.equal(contractValidationForbidden.status, 403)
 
     const sandboxReadiness = await request.get("/api/admin/dispatch/sandbox-readiness").set(adminAuth)
@@ -358,7 +355,7 @@ if (!shouldRunIntegration || !integrationDbUrl) {
 
     const adminUsersForbidden = await request.get("/api/admin/users").set(maAuth)
     assert.equal(adminUsersForbidden.status, 403)
-    await prisma.user.update({
+    await adminPrisma.user.update({
       where: { id: clinicianUser!.id },
       data: {
         mfaEnabled: true,
@@ -375,18 +372,25 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(mfaReset.status, 200)
     assert.equal(mfaReset.body.user.mfaEnabled, false)
 
-    const remainingOld = await prisma.auditLog.findMany({
+    const remainingOld = await adminPrisma.auditLog.findMany({
       where: {
+        orgId,
         entityId: {
           in: ["old-record", "recent-record"]
         }
       }
     })
 
-    assert.equal(remainingOld.some((row) => row.entityId === "old-record"), false)
-    assert.equal(remainingOld.some((row) => row.entityId === "recent-record"), true)
+    assert.equal(
+      remainingOld.some((row) => row.entityId === "old-record"),
+      false
+    )
+    assert.equal(
+      remainingOld.some((row) => row.entityId === "recent-record"),
+      true
+    )
 
-    await clearTablesInOrder()
-    await prisma.$disconnect()
+    await clearTablesInOrder(adminPrisma)
+    await adminPrisma.$disconnect()
   })
 }

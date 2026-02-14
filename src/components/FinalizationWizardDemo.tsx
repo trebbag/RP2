@@ -3,14 +3,7 @@ import { Button } from "./ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { FinalizationWizard } from "./FinalizationWizard"
-import { 
-  Shield,
-  FileText,
-  Code2,
-  Heart,
-  Activity,
-  Stethoscope
-} from "lucide-react"
+import { Shield, FileText, Code2, Heart, Activity, Stethoscope } from "lucide-react"
 
 export function FinalizationWizardDemo() {
   const [showWizard, setShowWizard] = useState(false)
@@ -35,9 +28,9 @@ export function FinalizationWizardDemo() {
       rvu: "1.92"
     },
     {
-      code: "99214", 
+      code: "99214",
       type: "CPT",
-      category: "codes", 
+      category: "codes",
       description: "Office visit, established patient (moderate complexity)",
       rationale: "High complexity decision making documented with comprehensive assessment",
       confidence: 78,
@@ -79,7 +72,7 @@ export function FinalizationWizardDemo() {
     {
       code: "Viral URI vs Bacterial Sinusitis",
       type: "DIFFERENTIAL",
-      category: "differentials", 
+      category: "differentials",
       description: "Primary differential diagnosis consideration",
       rationale: "85% confidence viral, 35% bacterial based on symptom pattern",
       confidence: 85
@@ -91,21 +84,27 @@ export function FinalizationWizardDemo() {
       id: "mdm-1",
       severity: "critical" as const,
       title: "Medical Decision Making complexity not documented",
-      description: "The note lacks specific documentation of medical decision making complexity required for E/M coding.",
+      description:
+        "The note lacks specific documentation of medical decision making complexity required for E/M coding.",
       category: "documentation" as const,
-      details: "For CPT 99214, you must document moderate level medical decision making. Include number of diagnoses/management options, amount of data reviewed, and risk assessment.",
-      suggestion: "Add a Medical Decision Making section with: 1) Problem complexity assessment, 2) Data reviewed, 3) Risk stratification table showing moderate complexity.",
-      learnMoreUrl: "https://www.cms.gov/outreach-and-education/medicare-learning-network-mln/mlnproducts/downloads/eval-mgmt-serv-guide-icn006764.pdf",
+      details:
+        "For CPT 99214, you must document moderate level medical decision making. Include number of diagnoses/management options, amount of data reviewed, and risk assessment.",
+      suggestion:
+        "Add a Medical Decision Making section with: 1) Problem complexity assessment, 2) Data reviewed, 3) Risk stratification table showing moderate complexity.",
+      learnMoreUrl:
+        "https://www.cms.gov/outreach-and-education/medicare-learning-network-mln/mlnproducts/downloads/eval-mgmt-serv-guide-icn006764.pdf",
       dismissed: false
     },
     {
-      id: "ros-1", 
+      id: "ros-1",
       severity: "warning" as const,
       title: "Review of Systems incomplete",
       description: "Extended Review of Systems (ROS) documentation is missing or incomplete for this level of service.",
       category: "documentation" as const,
-      details: "E/M level 4 visits require extended ROS covering 2-9 systems or complete ROS covering 10+ systems to support the level of service billed.",
-      suggestion: "Document a systematic review of systems including respiratory, cardiovascular, gastrointestinal, and other relevant systems. Include both positive and negative findings.",
+      details:
+        "E/M level 4 visits require extended ROS covering 2-9 systems or complete ROS covering 10+ systems to support the level of service billed.",
+      suggestion:
+        "Document a systematic review of systems including respiratory, cardiovascular, gastrointestinal, and other relevant systems. Include both positive and negative findings.",
       learnMoreUrl: "https://www.cms.gov/medicare/physician-fee-schedule/physician-fee-schedule",
       dismissed: true
     }
@@ -151,7 +150,7 @@ The patient was counseled on supportive care measures including rest, hydration,
     },
     {
       icon: Code2,
-      title: "Code Verification", 
+      title: "Code Verification",
       description: "Validate selected CPT and procedure codes",
       color: "text-blue-600"
     },
@@ -164,7 +163,7 @@ The patient was counseled on supportive care measures including rest, hydration,
     {
       icon: Activity,
       title: "Diagnoses Confirmation",
-      description: "Confirm primary and secondary diagnoses", 
+      description: "Confirm primary and secondary diagnoses",
       color: "text-purple-600"
     },
     {
@@ -187,7 +186,8 @@ The patient was counseled on supportive care measures including rest, hydration,
         <div className="space-y-2">
           <h1 className="text-2xl font-medium">Finalization Wizard Demo</h1>
           <p className="text-muted-foreground">
-            The finalization wizard is now isolated as a separate component. This demo shows how it can be used independently of the main note editor.
+            The finalization wizard is now isolated as a separate component. This demo shows how it can be used
+            independently of the main note editor.
           </p>
         </div>
 
@@ -222,8 +222,9 @@ The patient was counseled on supportive care measures including rest, hydration,
               <div className="space-y-2">
                 <div className="text-sm font-medium">Compliance Issues</div>
                 <div className="text-sm text-muted-foreground">
-                  {mockComplianceIssues.filter(issue => !issue.dismissed).length} active issues
-                  ({mockComplianceIssues.filter(issue => issue.severity === 'critical' && !issue.dismissed).length} critical)
+                  {mockComplianceIssues.filter((issue) => !issue.dismissed).length} active issues (
+                  {mockComplianceIssues.filter((issue) => issue.severity === "critical" && !issue.dismissed).length}{" "}
+                  critical)
                 </div>
               </div>
 
@@ -267,11 +268,7 @@ The patient was counseled on supportive care measures including rest, hydration,
 
         {/* Launch Wizard Button */}
         <div className="flex items-center justify-center py-8">
-          <Button 
-            onClick={() => setShowWizard(true)}
-            size="lg"
-            className="bg-primary hover:bg-primary/90"
-          >
+          <Button onClick={() => setShowWizard(true)} size="lg" className="bg-primary hover:bg-primary/90">
             <Shield className="h-4 w-4 mr-2" />
             Launch Finalization Wizard
           </Button>
@@ -292,7 +289,7 @@ The patient was counseled on supportive care measures including rest, hydration,
                 <li>Pass the real note data, selected codes, and compliance issues as props</li>
               </ol>
             </div>
-            
+
             <div className="space-y-2">
               <h4 className="font-medium">Component Benefits:</h4>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">

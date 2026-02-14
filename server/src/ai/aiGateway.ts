@@ -47,11 +47,15 @@ const PAYLOAD_SCHEMAS: Record<AiTaskType, z.ZodTypeAny> = {
 }
 
 function buildInputHash(value: unknown): string {
-  return createHash("sha256").update(JSON.stringify(value ?? {})).digest("hex")
+  return createHash("sha256")
+    .update(JSON.stringify(value ?? {}))
+    .digest("hex")
 }
 
 function buildOutputHash(value: unknown): string {
-  return createHash("sha256").update(JSON.stringify(value ?? {})).digest("hex")
+  return createHash("sha256")
+    .update(JSON.stringify(value ?? {}))
+    .digest("hex")
 }
 
 function toSafeErrorMessage(error: unknown): string {
@@ -227,7 +231,9 @@ async function callOpenAiJsonTask<TSchema extends z.ZodTypeAny>(input: {
   }
 }
 
-export async function runTask<TSchema extends z.ZodTypeAny>(input: RunTaskInput<TSchema>): Promise<RunTaskOutput<TSchema>> {
+export async function runTask<TSchema extends z.ZodTypeAny>(
+  input: RunTaskInput<TSchema>
+): Promise<RunTaskOutput<TSchema>> {
   const taskName = input.taskName ?? input.taskType
   const payloadSchema = PAYLOAD_SCHEMAS[input.taskType]
   const startedAt = Date.now()

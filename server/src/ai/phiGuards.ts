@@ -39,12 +39,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
-function scanForbiddenKeys(
-  value: unknown,
-  path: string,
-  found: Set<string>,
-  visited: WeakSet<object>
-) {
+function scanForbiddenKeys(value: unknown, path: string, found: Set<string>, visited: WeakSet<object>) {
   if (!value || typeof value !== "object") return
   if (visited.has(value as object)) return
   visited.add(value as object)
@@ -143,4 +138,3 @@ export function assertNoPhiPayload(payload: unknown, taskType?: AiTaskType) {
     })
   }
 }
-

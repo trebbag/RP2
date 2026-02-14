@@ -28,11 +28,7 @@ export function verifyPassword(password: string, hashedPassword: string): boolea
 
 function hashRefreshToken(token: string): string {
   const secret = process.env.JWT_SECRET ?? "development-refresh-secret-not-for-prod"
-  return createHash("sha256")
-    .update(token)
-    .update("|")
-    .update(secret)
-    .digest("hex")
+  return createHash("sha256").update(token).update("|").update(secret).digest("hex")
 }
 
 function createRawRefreshToken(): string {
@@ -40,20 +36,18 @@ function createRawRefreshToken(): string {
 }
 
 function resolveRefreshSessionExpiry(): Date {
-  const ttlHours = Math.max(
-    1,
-    Number.parseInt(process.env.REFRESH_TOKEN_TTL_HOURS ?? "168", 10)
-  )
+  const ttlHours = Math.max(1, Number.parseInt(process.env.REFRESH_TOKEN_TTL_HOURS ?? "168", 10))
   return new Date(Date.now() + ttlHours * 60 * 60 * 1000)
 }
 
-export async function createRefreshSession(userId: string, meta?: RequestMeta) {
+export async function createRefreshSession(userId: string, orgId: string, meta?: RequestMeta) {
   const token = createRawRefreshToken()
   const refreshTokenHash = hashRefreshToken(token)
   const expiresAt = resolveRefreshSessionExpiry()
 
   const session = await prisma.authSession.create({
     data: {
+      orgId,
       userId,
       refreshTokenHash,
       expiresAt,
@@ -91,6 +85,7 @@ export async function rotateRefreshSession(refreshToken: string, meta?: RequestM
 
     return tx.authSession.create({
       data: {
+        orgId: existing.orgId,
         userId: existing.userId,
         refreshTokenHash: replacementHash,
         expiresAt: nextExpiresAt,
@@ -102,6 +97,7 @@ export async function rotateRefreshSession(refreshToken: string, meta?: RequestM
 
   return {
     user: existing.user,
+    orgId: existing.orgId,
     token: replacementToken,
     session: nextSession
   }

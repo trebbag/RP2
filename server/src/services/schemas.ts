@@ -29,13 +29,15 @@ export const composeOutputSchema = z.object({
   enhancedNote: z.string().min(1),
   patientSummary: z.string().min(1),
   traceId: z.string().min(1),
-  stages: z.array(
-    z.object({
-      id: z.number().int().positive(),
-      title: z.string().min(1),
-      status: z.enum(["pending", "in-progress", "completed"])
-    })
-  ).length(4)
+  stages: z
+    .array(
+      z.object({
+        id: z.number().int().positive(),
+        title: z.string().min(1),
+        status: z.enum(["pending", "in-progress", "completed"])
+      })
+    )
+    .length(4)
 })
 
 export const billingEstimateSchema = z.object({

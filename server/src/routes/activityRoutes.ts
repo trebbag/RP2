@@ -25,7 +25,10 @@ function toTitleCase(value: string): string {
     .join(" ")
 }
 
-function classifyActivity(action: string, entity: string): {
+function classifyActivity(
+  action: string,
+  entity: string
+): {
   category: ActivityCategory
   severity: ActivitySeverity
 } {
@@ -81,12 +84,7 @@ function classifyActivity(action: string, entity: string): {
   return { category, severity }
 }
 
-function describeActivity(input: {
-  action: string
-  entity: string
-  entityId: string
-  details: unknown
-}): string {
+function describeActivity(input: { action: string; entity: string; entityId: string; details: unknown }): string {
   const baseAction = toTitleCase(input.action)
   const entity = toTitleCase(input.entity)
   const details = input.details as { reason?: string; mode?: string } | null
@@ -125,6 +123,7 @@ function decodeCursor(value: string): ActivityCursor | null {
 
 function buildBaseWhere(input: {
   userId: string
+  orgId: string
   role: UserRole
   query: z.infer<typeof querySchema>
 }): Prisma.AuditLogWhereInput {
@@ -155,12 +154,9 @@ function buildBaseWhere(input: {
     })
   }
 
-  if (andClauses.length === 0) {
-    return {}
-  }
-
   return {
-    AND: andClauses
+    orgId: input.orgId,
+    ...(andClauses.length > 0 ? { AND: andClauses } : {})
   }
 }
 
@@ -180,6 +176,7 @@ activityRoutes.get("/", async (req, res, next) => {
     const includeBackend = query.includeBackend && role === "ADMIN"
     const baseWhere = buildBaseWhere({
       userId: authReq.user.id,
+      orgId: authReq.user.orgId,
       role,
       query
     })

@@ -1,3 +1,4 @@
+import { type DeidentifiedText } from "../phi.js";
 export interface TextRedactionSummary {
     emailCount: number;
     phoneCount: number;
@@ -18,17 +19,17 @@ export interface EncounterDeidentifyInput {
     speakerHints?: string[];
 }
 export interface DeidentifiedEncounterContext {
-    noteText: string;
-    transcriptText: string;
+    noteText: DeidentifiedText;
+    transcriptText: DeidentifiedText;
     chartFacts: Record<string, unknown> | null;
     metadata: Record<string, unknown> | null;
     selectedCodes: string[];
-    speakerHint?: string;
-    speakerHints: string[];
+    speakerHint?: DeidentifiedText;
+    speakerHints: DeidentifiedText[];
     redactionSummary: EncounterRedactionSummary;
 }
 export declare function deidentifyText(text: string): {
-    text: string;
+    text: DeidentifiedText;
     redactionSummary: TextRedactionSummary;
 };
 export declare function deidentifyEncounterContext(input: EncounterDeidentifyInput): DeidentifiedEncounterContext;

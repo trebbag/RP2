@@ -1,11 +1,13 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import supertest from "supertest"
+import { clearTablesInOrder, createAdminPrisma, resolveIntegrationAdminDbUrl } from "./helpers/adminDb.js"
 
 const shouldRunIntegration = process.env.RP2_RUN_INTEGRATION === "1"
 const integrationDbUrl = process.env.RP2_INTEGRATION_DB_URL || process.env.DATABASE_URL
+const integrationAdminDbUrl = resolveIntegrationAdminDbUrl()
 
-if (!shouldRunIntegration || !integrationDbUrl) {
+if (!shouldRunIntegration || !integrationDbUrl || !integrationAdminDbUrl) {
   test("security controls integration (skipped)", { skip: true }, () => {
     assert.ok(true)
   })
@@ -20,36 +22,13 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     process.env.AUTH_LOGIN_BLOCK_SECONDS = "300"
 
     const { createApp } = await import("../src/app.js")
-    const { prisma } = await import("../src/lib/prisma.js")
+    const adminPrisma = createAdminPrisma()
 
     const app = createApp()
     const request = supertest(app)
 
-    await prisma.$connect()
-
-    const clearTablesInOrder = async () => {
-      await prisma.auditLog.deleteMany({})
-      await prisma.authSession.deleteMany({})
-      await prisma.exportArtifact.deleteMany({})
-      await prisma.wizardStepState.deleteMany({})
-      await prisma.wizardRun.deleteMany({})
-      await prisma.complianceIssue.deleteMany({})
-      await prisma.codeSelection.deleteMany({})
-      await prisma.codeSuggestion.deleteMany({})
-      await prisma.suggestionGeneration.deleteMany({})
-      await prisma.transcriptSegment.deleteMany({})
-      await prisma.noteVersion.deleteMany({})
-      await prisma.note.deleteMany({})
-      await prisma.dispatchJob.deleteMany({})
-      await prisma.encounter.deleteMany({})
-      await prisma.chartAsset.deleteMany({})
-      await prisma.appointment.deleteMany({})
-      await prisma.patient.deleteMany({})
-      await prisma.userSettings.deleteMany({})
-      await prisma.user.deleteMany({})
-    }
-
-    await clearTablesInOrder()
+    await adminPrisma.$connect()
+    await clearTablesInOrder(adminPrisma)
 
     const register = await request.post("/api/auth/register-first").send({
       email: "security.admin@revenuepilot.local",
@@ -94,16 +73,16 @@ if (!shouldRunIntegration || !integrationDbUrl) {
     assert.equal(recordRotation.status, 201)
     assert.equal(recordRotation.body.rotation.ticketId, "SEC-1234")
 
-    const rotationStatus = await request
-      .get("/api/admin/security/secret-rotation/status")
-      .set(auth)
+    const rotationStatus = await request.get("/api/admin/security/secret-rotation/status").set(auth)
 
     assert.equal(rotationStatus.status, 200)
     assert.equal(rotationStatus.body.status.hasRecordedRotation, true)
     assert.ok(Array.isArray(rotationStatus.body.status.secretsTracked))
-    assert.ok(rotationStatus.body.status.secretsTracked.some((item: { secret: string }) => item.secret === "JWT_SECRET"))
+    assert.ok(
+      rotationStatus.body.status.secretsTracked.some((item: { secret: string }) => item.secret === "JWT_SECRET")
+    )
 
-    await clearTablesInOrder()
-    await prisma.$disconnect()
+    await clearTablesInOrder(adminPrisma)
+    await adminPrisma.$disconnect()
   })
 }

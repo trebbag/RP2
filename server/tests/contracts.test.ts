@@ -1,6 +1,11 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { billingEstimateSchema, composeOutputSchema, complianceIssueSchema, suggestionSchema } from "../src/services/schemas.js"
+import {
+  billingEstimateSchema,
+  composeOutputSchema,
+  complianceIssueSchema,
+  suggestionSchema
+} from "../src/services/schemas.js"
 
 test("schema validation for suggestion payload", () => {
   const parsed = suggestionSchema.parse({

@@ -5,7 +5,14 @@ import { ProgressIndicator } from "./ProgressIndicator"
 import { WorkflowNoteEditor } from "./WorkflowNoteEditor"
 import { StepContent } from "./StepContent"
 import { DualRichTextEditor } from "./DualRichTextEditor"
-import { composeWizard, fetchWizardState, finalizeWizard, previewBillingWizard, rebeautifyWizard, wizardStepAction } from "../../lib/api"
+import {
+  composeWizard,
+  fetchWizardState,
+  finalizeWizard,
+  previewBillingWizard,
+  rebeautifyWizard,
+  wizardStepAction
+} from "../../lib/api"
 
 interface WorkflowWizardProps {
   initialNoteContent?: string
@@ -75,7 +82,9 @@ PLAN:
   const [finalizationError, setFinalizationError] = useState<string | null>(null)
   const [finalizationArtifacts, setFinalizationArtifacts] = useState<Array<{ id: string; type: string }>>([])
   const [dispatchStatus, setDispatchStatus] = useState<string | null>(null)
-  const [decisionStatusByCode, setDecisionStatusByCode] = useState<Record<string, "confirmed" | "rejected" | "pending">>({})
+  const [decisionStatusByCode, setDecisionStatusByCode] = useState<
+    Record<string, "confirmed" | "rejected" | "pending">
+  >({})
   const [billingPreview, setBillingPreview] = useState<{
     payerModel: string
     feeScheduleVersion: string
@@ -421,7 +430,9 @@ PLAN:
     const runCompose = async () => {
       setIsComposing(true)
       setComposeError(null)
-      setComposeStages((prev) => prev.map((stage, index) => ({ ...stage, status: index === 0 ? "in-progress" : "pending" })))
+      setComposeStages((prev) =>
+        prev.map((stage, index) => ({ ...stage, status: index === 0 ? "in-progress" : "pending" }))
+      )
 
       try {
         const response = await composeWizard(encounterId, noteContent)
@@ -580,9 +591,10 @@ PLAN:
     return ranges
   }
 
-  const stepDataForRender = currentStepData?.id === 4 && currentStepData.type === "dual-editor"
-    ? { ...currentStepData, originalContent: noteContent }
-    : currentStepData
+  const stepDataForRender =
+    currentStepData?.id === 4 && currentStepData.type === "dual-editor"
+      ? { ...currentStepData, originalContent: noteContent }
+      : currentStepData
 
   const formatUsd = (cents: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100)
@@ -629,8 +641,7 @@ PLAN:
     const code = typeof item?.title === "string" ? item.title.split(" - ")[0] : undefined
     if (!code) return
 
-    const actionType =
-      status === "completed" || status === "confirmed" ? "keep" : "remove"
+    const actionType = status === "completed" || status === "confirmed" ? "keep" : "remove"
 
     setDecisionStatusByCode((prev) => ({
       ...prev,
@@ -1061,7 +1072,12 @@ PLAN:
                               "linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(59, 130, 246, 0.04) 100%)"
                             ]
                     }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.15, 0.35, 0.55, 0.7, 0.85, 1] }}
+                    transition={{
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      times: [0, 0.15, 0.35, 0.55, 0.7, 0.85, 1]
+                    }}
                   />
                 </motion.div>
 

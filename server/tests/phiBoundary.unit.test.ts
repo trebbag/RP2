@@ -148,4 +148,3 @@ test("aiGateway logs payload stats without raw payload text", async () => {
   assert.equal(joined.includes("UNIQUE_PHI_BOUNDARY_SENTINEL"), false)
   assert.equal(joined.includes("ai_gateway.task_received"), true)
 })
-

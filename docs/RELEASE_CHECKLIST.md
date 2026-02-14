@@ -55,25 +55,37 @@ npm --workspace @revenuepilot/server run prisma:migrate:resolve-baseline
 Before promoting:
 
 1. Confirm production env vars are present:
+
 - auth + MFA policy
 - dispatch target/auth/certs
 - alert sink routing
+
 2. Confirm dispatch sandbox readiness endpoint returns ready:
+
 - `GET /api/admin/dispatch/sandbox-readiness`
+
 3. Confirm contract validation passes for chosen target:
+
 - `POST /api/admin/dispatch/contract/validate`
 
 ## 4. Post-Deploy Smoke
 
 1. Health check:
+
 - `GET /health`
+
 2. Auth flows:
+
 - login + refresh + MFA path
+
 3. Core workflow:
+
 - start encounter
 - save note
 - finalize and dispatch
+
 4. Ops checks:
+
 - `GET /api/admin/observability/summary`
 - `GET /api/admin/dispatch/jobs`
 

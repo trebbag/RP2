@@ -101,7 +101,9 @@ export function enforceSuggestionGuardrails(
     if (normalized.evidence.length === 0) {
       normalized.evidence = toSafeEvidence(sourceSnippet)
       normalized.confidence = Math.min(normalized.confidence, 72)
-      warnings.push(`Suggestion ${normalized.code} had no evidence; downgraded confidence and injected source snippet evidence.`)
+      warnings.push(
+        `Suggestion ${normalized.code} had no evidence; downgraded confidence and injected source snippet evidence.`
+      )
     }
 
     if (!deduped.has(key)) {
@@ -151,7 +153,10 @@ export function enforceComplianceGuardrails(
       warnings.push(`Compliance issue '${next.title}' had no evidence; fallback evidence injected.`)
     }
 
-    if ((next.severity === "CRITICAL" || next.severity === "WARNING") && !/(denial|payer|claim)/i.test(next.rationale)) {
+    if (
+      (next.severity === "CRITICAL" || next.severity === "WARNING") &&
+      !/(denial|payer|claim)/i.test(next.rationale)
+    ) {
       next.rationale = `${next.rationale} This gap increases payer denial risk.`
       warnings.push(`Compliance issue '${next.title}' rationale was augmented with explicit denial-risk language.`)
     }
@@ -240,9 +245,7 @@ export function enforceComplianceGuardrails(
   }
 }
 
-export function enforceComposeGuardrails(
-  output: ComposeOutputLike
-): GuardrailResult<ComposeOutputLike> {
+export function enforceComposeGuardrails(output: ComposeOutputLike): GuardrailResult<ComposeOutputLike> {
   const warnings: string[] = []
   let enhancedNote = output.enhancedNote.trim()
   let patientSummary = output.patientSummary.trim()
@@ -295,7 +298,9 @@ export function enforceDiarizationGuardrails(input: {
   preferredSpeakers?: string[]
 }): GuardrailResult<DiarizationSegmentLike[]> {
   const warnings: string[] = []
-  const preferred = new Set((input.preferredSpeakers ?? []).map((speaker) => speaker.trim().toLowerCase()).filter(Boolean))
+  const preferred = new Set(
+    (input.preferredSpeakers ?? []).map((speaker) => speaker.trim().toLowerCase()).filter(Boolean)
+  )
   const fallbackSpeaker = resolveFallbackSpeaker(input.speakerHint, input.preferredSpeakers)
 
   const normalized = input.segments
@@ -303,10 +308,7 @@ export function enforceDiarizationGuardrails(input: {
       speaker: segment.speaker?.trim() || fallbackSpeaker,
       speakerLabel: segment.speakerLabel?.trim() || undefined,
       text: segment.text?.trim() || "",
-      confidence:
-        typeof segment.confidence === "number"
-          ? Math.max(0, Math.min(1, segment.confidence))
-          : undefined
+      confidence: typeof segment.confidence === "number" ? Math.max(0, Math.min(1, segment.confidence)) : undefined
     }))
     .filter((segment) => segment.text.length > 0)
 

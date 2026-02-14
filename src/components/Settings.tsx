@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import {
-  AlertCircle,
-  Check,
-  CheckCircle,
-  Copy,
-  RefreshCw,
-  Save,
-  Send,
-  ShieldCheck
-} from "lucide-react"
+import { AlertCircle, Check, CheckCircle, Copy, RefreshCw, Save, Send, ShieldCheck } from "lucide-react"
 import { Alert, AlertDescription } from "./ui/alert"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
@@ -92,7 +91,7 @@ const defaultSettings: UserSettingsRecord = {
     }
   ],
   advanced: {
-    promptOverrides: "{\n  \"suggestion_context\": {\n    \"coding_accuracy_threshold\": 0.85\n  }\n}",
+    promptOverrides: '{\n  "suggestion_context": {\n    "coding_accuracy_threshold": 0.85\n  }\n}',
     isOfflineMode: false,
     localModelsDownloaded: false
   },
@@ -570,7 +569,9 @@ function TemplateAndRulesPanel(props: {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => props.updateTemplates(props.settings.templates.filter((item) => item.id !== template.id))}
+                onClick={() =>
+                  props.updateTemplates(props.settings.templates.filter((item) => item.id !== template.id))
+                }
               >
                 Delete
               </Button>
@@ -670,10 +671,7 @@ function TemplateAndRulesPanel(props: {
   )
 }
 
-function MfaSelfServicePanel(props: {
-  user: AuthUserRecord | null
-  onUserRefresh: () => Promise<void>
-}) {
+function MfaSelfServicePanel(props: { user: AuthUserRecord | null; onUserRefresh: () => Promise<void> }) {
   const [setupSecret, setSetupSecret] = useState<string | null>(null)
   const [setupUri, setSetupUri] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState("")
@@ -743,7 +741,11 @@ function MfaSelfServicePanel(props: {
               </a>
             )}
             <div className="flex items-center gap-2">
-              <Input value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} placeholder="Enter 6-digit code" />
+              <Input
+                value={mfaCode}
+                onChange={(event) => setMfaCode(event.target.value)}
+                placeholder="Enter 6-digit code"
+              />
               <Button
                 disabled={isWorking || mfaCode.trim().length < 6}
                 onClick={async () => {
@@ -797,7 +799,9 @@ function MfaSelfServicePanel(props: {
                     setGeneratedBackupCodes(result.backupCodes)
                     setMessage("Backup codes regenerated.")
                   } catch (requestError) {
-                    setError(requestError instanceof Error ? requestError.message : "Failed to regenerate backup codes.")
+                    setError(
+                      requestError instanceof Error ? requestError.message : "Failed to regenerate backup codes."
+                    )
                   } finally {
                     setIsWorking(false)
                   }
@@ -863,13 +867,15 @@ function MfaSelfServicePanel(props: {
 }
 
 function AdminMfaRecoveryPanel() {
-  const [users, setUsers] = useState<Array<{
-    id: string
-    email: string
-    name: string
-    role: "ADMIN" | "MA" | "CLINICIAN"
-    mfaEnabled: boolean
-  }>>([])
+  const [users, setUsers] = useState<
+    Array<{
+      id: string
+      email: string
+      name: string
+      role: "ADMIN" | "MA" | "CLINICIAN"
+      mfaEnabled: boolean
+    }>
+  >([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
@@ -900,7 +906,11 @@ function AdminMfaRecoveryPanel() {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-2">
-          <Input value={resetReason} onChange={(event) => setResetReason(event.target.value)} placeholder="Reset reason for audit log" />
+          <Input
+            value={resetReason}
+            onChange={(event) => setResetReason(event.target.value)}
+            placeholder="Reset reason for audit log"
+          />
           <Button variant="outline" onClick={load} disabled={isLoading}>
             {isLoading ? "Loading..." : "Refresh Users"}
           </Button>
@@ -919,7 +929,9 @@ function AdminMfaRecoveryPanel() {
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={user.mfaEnabled ? "secondary" : "outline"}>{user.mfaEnabled ? "MFA Enabled" : "MFA Off"}</Badge>
+              <Badge variant={user.mfaEnabled ? "secondary" : "outline"}>
+                {user.mfaEnabled ? "MFA Enabled" : "MFA Off"}
+              </Badge>
               <Button
                 size="sm"
                 variant="outline"
@@ -1225,9 +1237,7 @@ function DispatchContractValidationPanel() {
             <div className="space-y-1">
               {readiness.readiness.checks.map((check) => (
                 <div key={check.key} className="text-xs">
-                  <span className={check.ok ? "text-emerald-700" : "text-red-700"}>
-                    {check.ok ? "OK" : "FAIL"}
-                  </span>{" "}
+                  <span className={check.ok ? "text-emerald-700" : "text-red-700"}>{check.ok ? "OK" : "FAIL"}</span>{" "}
                   {check.key}: {check.detail}
                 </div>
               ))}
@@ -1325,14 +1335,15 @@ function ObservabilityPanel() {
             <div className="rounded-md border p-3">
               <p className="font-medium">Dispatch</p>
               <p className="text-muted-foreground">
-                Dead-letter (window): {summary.dispatch.deadLetterRecentCount} • Retrying: {summary.dispatch.retryingCount} • Pending:{" "}
-                {summary.dispatch.pendingCount}
+                Dead-letter (window): {summary.dispatch.deadLetterRecentCount} • Retrying:{" "}
+                {summary.dispatch.retryingCount} • Pending: {summary.dispatch.pendingCount}
               </p>
             </div>
             <div className="rounded-md border p-3">
               <p className="font-medium">STT</p>
               <p className="text-muted-foreground">
-                Fallback rate: {(summary.stt.fallbackRate * 100).toFixed(1)}% ({summary.stt.fallbackCount}/{summary.stt.ingestCount})
+                Fallback rate: {(summary.stt.fallbackRate * 100).toFixed(1)}% ({summary.stt.fallbackCount}/
+                {summary.stt.ingestCount})
               </p>
             </div>
             <div className="rounded-md border p-3">
@@ -1386,7 +1397,8 @@ function ObservabilityPanel() {
             <div className="rounded-md border p-3 space-y-2">
               <p className="font-medium">AI Drift Timeseries</p>
               <p className="text-xs text-muted-foreground">
-                Window: {(trends?.windowMinutes ?? (Number(windowMinutes) || 60))}m • Bucket: {(trends?.bucketMinutes ?? (Number(bucketMinutes) || 15))}m
+                Window: {trends?.windowMinutes ?? (Number(windowMinutes) || 60)}m • Bucket:{" "}
+                {trends?.bucketMinutes ?? (Number(bucketMinutes) || 15)}m
               </p>
               {chartData.length > 0 ? (
                 <div className="space-y-3">
@@ -1433,8 +1445,8 @@ function ObservabilityPanel() {
                     <div className="grid gap-1 text-xs text-muted-foreground">
                       <p>Latest bucket ({latestTrendPoint.label})</p>
                       <p>
-                        STT fallback: {latestTrendPoint.sttFallbackPct.toFixed(1)}% • Auth failures: {latestTrendPoint.authFailures} • Dead letters:{" "}
-                        {latestTrendPoint.deadLetters}
+                        STT fallback: {latestTrendPoint.sttFallbackPct.toFixed(1)}% • Auth failures:{" "}
+                        {latestTrendPoint.authFailures} • Dead letters: {latestTrendPoint.deadLetters}
                       </p>
                     </div>
                   )}
@@ -1502,7 +1514,9 @@ export function Settings({ userRole = "user" }: SettingsProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-          <p className="text-muted-foreground mt-1">Persisted account settings, security controls, and pilot operations.</p>
+          <p className="text-muted-foreground mt-1">
+            Persisted account settings, security controls, and pilot operations.
+          </p>
         </div>
         <Badge variant="outline">{userRole === "admin" ? "Administrator" : "User"}</Badge>
       </div>
